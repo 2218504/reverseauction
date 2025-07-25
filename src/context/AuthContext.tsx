@@ -64,11 +64,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, pass: string) => {
+    setLoading(true);
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     if(userCredential.user) {
-        // After login, we explicitly check the admin role
         await checkAdminRole(userCredential.user);
     }
+    setLoading(false);
     return userCredential;
   };
 
@@ -109,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
