@@ -30,7 +30,8 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: error.message,
       });
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
   };
 
