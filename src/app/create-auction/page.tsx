@@ -36,6 +36,14 @@ export default function CreateAuctionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!title || !description || !startPrice || !startTime || !endTime) {
+        toast({
+            variant: "destructive",
+            title: "Missing Fields",
+            description: "Please fill out all required fields.",
+        });
+        return;
+    }
     setLoading(true);
     try {
       const newAuction = {
