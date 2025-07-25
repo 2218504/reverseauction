@@ -12,7 +12,6 @@ export default function AuctionsPage() {
   const { auctions, loading: auctionsLoading } = useAuctions();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const now = new Date();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -20,9 +19,9 @@ export default function AuctionsPage() {
     }
   }, [user, authLoading, router]);
 
-  const liveAuctions = auctions.filter(a => new Date(a.startTime) <= now && new Date(a.endTime) > now);
-  const startingSoonAuctions = auctions.filter(a => new Date(a.startTime) > now);
-  const completedAuctions = auctions.filter(a => new Date(a.endTime) <= now);
+  const liveAuctions = auctions.filter(a => a.status === 'live');
+  const startingSoonAuctions = auctions.filter(a => a.status === 'starting-soon');
+  const completedAuctions = auctions.filter(a => a.status === 'completed');
 
   const renderSkeletons = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

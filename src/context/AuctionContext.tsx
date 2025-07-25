@@ -2,8 +2,10 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { collection, addDoc, getDocs, doc, getDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase/firebase';
+
+export type AuctionStatus = 'live' | 'starting-soon' | 'completed';
 
 export interface Auction {
   id: string;
@@ -14,6 +16,7 @@ export interface Auction {
   endTime: Date;
   imageUrl: string;
   imageHint: string;
+  status: AuctionStatus;
 }
 
 export interface AuctionData {
@@ -24,13 +27,15 @@ export interface AuctionData {
   endTime: Timestamp;
   imageUrl: string;
   imageHint: string;
+  status: AuctionStatus;
 }
 
 
 interface AuctionContextType {
   auctions: Auction[];
-  addAuction: (auction: Omit<Auction, 'id'>) => Promise<void>;
+  addAuction: (auction: Omit<Auction, 'id' | 'status'>) => Promise<void>;
   getAuctionById: (id: string) => Promise<Auction | undefined>;
+  updateAuctionStatus: (id: string, status: AuctionStatus) => Promise<void>;
   loading: boolean;
 }
 
@@ -40,17 +45,28 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const getStatus = (startTime: Date, endTime: Date): AuctionStatus => {
+    const now = new Date();
+    if (now < startTime) return 'starting-soon';
+    if (now > endTime) return 'completed';
+    return 'live';
+  }
+
   useEffect(() => {
     const fetchAuctions = async () => {
       setLoading(true);
       const querySnapshot = await getDocs(collection(db, "auctions"));
       const auctionsData = querySnapshot.docs.map(doc => {
         const data = doc.data() as AuctionData;
+        const startTime = data.startTime.toDate();
+        const endTime = data.endTime.toDate();
         return {
           id: doc.id,
           ...data,
-          startTime: data.startTime.toDate(),
-          endTime: data.endTime.toDate(),
+          startTime,
+          endTime,
+          // Recalculate status on fetch in case time has passed
+          status: getStatus(startTime, endTime),
         }
       });
       setAuctions(auctionsData);
@@ -60,15 +76,24 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     fetchAuctions();
   }, []);
 
-  const addAuction = async (auction: Omit<Auction, 'id'>) => {
+  const addAuction = async (auction: Omit<Auction, 'id' | 'status'>) => {
+    const status = getStatus(auction.startTime, auction.endTime);
+    
     const auctionData = {
         ...auction,
         startTime: Timestamp.fromDate(auction.startTime),
         endTime: Timestamp.fromDate(auction.endTime),
+        status,
     }
     const docRef = await addDoc(collection(db, "auctions"), auctionData);
-    setAuctions(prevAuctions => [{...auction, id: docRef.id}, ...prevAuctions]);
+    setAuctions(prevAuctions => [{...auction, id: docRef.id, status}, ...prevAuctions]);
   };
+  
+  const updateAuctionStatus = async (id: string, status: AuctionStatus) => {
+      const auctionRef = doc(db, 'auctions', id);
+      await updateDoc(auctionRef, { status });
+      setAuctions(prev => prev.map(a => a.id === id ? {...a, status} : a));
+  }
 
   const getAuctionById = async (id: string) => {
     setLoading(true);
@@ -78,11 +103,14 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
 
     if (docSnap.exists()) {
       const data = docSnap.data() as AuctionData;
+      const startTime = data.startTime.toDate();
+      const endTime = data.endTime.toDate();
       return {
           id: docSnap.id,
           ...data,
-          startTime: data.startTime.toDate(),
-          endTime: data.endTime.toDate(),
+          startTime,
+          endTime,
+          status: getStatus(startTime, endTime),
       };
     } else {
       return undefined;
@@ -90,7 +118,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, loading }}>
+    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, updateAuctionStatus, loading }}>
       {children}
     </AuctionContext.Provider>
   );

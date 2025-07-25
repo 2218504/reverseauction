@@ -32,7 +32,7 @@ export default function CreateAuctionPage() {
         title: "Unauthorized",
         description: "You do not have permission to create an auction.",
       });
-      router.push('/');
+      router.push('/auctions');
     }
   }, [user, isAdmin, authLoading, router, toast]);
 
@@ -74,7 +74,7 @@ export default function CreateAuctionPage() {
         title: "Auction Created",
         description: "Your new auction has been created successfully.",
       });
-      router.push('/');
+      router.push('/auctions');
     } catch (error) {
        console.error("Failed to create auction:", error);
        toast({

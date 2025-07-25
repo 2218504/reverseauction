@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, DollarSign, Gavel, History, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { useAuctions, Auction } from "@/context/AuctionContext";
+import { useAuctions, Auction, AuctionStatus } from "@/context/AuctionContext";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -24,7 +24,7 @@ type Bid = {
 
 export default function AuctionPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
-  const { getAuctionById } = useAuctions();
+  const { getAuctionById, updateAuctionStatus } = useAuctions();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   
@@ -36,16 +36,23 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
   const [currentLowestBid, setCurrentLowestBid] = useState<number | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
 
+  const handleExpire = useCallback(() => {
+    setIsFinished(true);
+    if (auction) {
+        updateAuctionStatus(auction.id, 'completed');
+    }
+  }, [auction, updateAuctionStatus]);
+
   const fetchAuction = useCallback(async (id: string) => {
     setPageLoading(true);
     const fetchedAuction = await getAuctionById(id);
     setAuction(fetchedAuction);
     if (fetchedAuction) {
-        // In a real app, bids would be fetched for the auction
-        // For now, let's keep mock bids or an empty array
         setBids([]);
         setCurrentLowestBid(fetchedAuction.currentLowestBid);
-        if (fetchedAuction.endTime) {
+        if (fetchedAuction.status === 'completed') {
+            setIsFinished(true);
+        } else {
             setIsFinished(new Date() > new Date(fetchedAuction.endTime));
         }
     }
@@ -138,7 +145,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
     )
   }
 
-  if (auction === undefined) {
+  if (!auction) {
     return <div>Auction not found</div>;
   }
   
@@ -203,7 +210,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
             <div className="text-center border p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Time Remaining</p>
                 <div className="text-xl font-bold">
-                    <CountdownTimer endTime={auction.endTime} onExpire={() => setIsFinished(true)} />
+                    <CountdownTimer endTime={auction.endTime} onExpire={handleExpire} />
                 </div>
             </div>
             <div className="flex items-center justify-center text-sm text-muted-foreground gap-2">
@@ -253,3 +260,4 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+

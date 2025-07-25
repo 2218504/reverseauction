@@ -10,7 +10,7 @@ import type { Auction } from '@/context/AuctionContext';
 export { type Auction };
 
 export function AuctionCard({ auction }: { auction: Auction }) {
-  const isCompleted = new Date(auction.endTime) < new Date();
+  const isCompleted = auction.status === 'completed';
   
   return (
     <Card className={`flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isCompleted ? 'opacity-70 bg-secondary/50' : ''}`}>
