@@ -27,7 +27,7 @@ export default function Header() {
             <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
               Auctions
             </Link>
-            {isAdmin && (
+            {user && isAdmin && (
               <>
                 <Link href="/create-auction" className="text-muted-foreground hover:text-primary transition-colors">
                   Create Auction
