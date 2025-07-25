@@ -1,11 +1,53 @@
 
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Award, Gavel, Target, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/auctions');
+    }
+  }, [user, loading, router]);
+
+  if (loading || user) {
+    return (
+      <div className="flex flex-col items-center space-y-16 py-8">
+         <section className="max-w-4xl w-full">
+            <Skeleton className="h-16 w-3/4 mx-auto mb-4" />
+            <Skeleton className="h-6 w-full mx-auto mb-8" />
+             <div className="flex justify-center gap-4">
+                <Skeleton className="h-12 w-32" />
+                <Skeleton className="h-12 w-32" />
+            </div>
+         </section>
+         <section className="max-w-5xl w-full">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+                <Skeleton className="h-80 w-full rounded-lg" />
+                <div className="space-y-4">
+                    <Skeleton className="h-10 w-3/4" />
+                    <Skeleton className="h-5 w-full" />
+                    <Skeleton className="h-5 w-full" />
+                    <Skeleton className="h-5 w-5/6" />
+                </div>
+            </div>
+         </section>
+      </div>
+    );
+  }
+
+
   return (
     <div className="flex flex-col items-center text-center space-y-16 py-8">
       
