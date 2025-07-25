@@ -1,7 +1,7 @@
 
 "use client";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,25 +36,25 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
   const [bids, setBids] = useState<Bid[]>([]);
   const [currentLowestBid, setCurrentLowestBid] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchAuction = async () => {
-        const fetchedAuction = await getAuctionById(params.id);
-        setAuction(fetchedAuction);
+  const fetchAuction = useCallback(async (id: string) => {
+    const fetchedAuction = await getAuctionById(id);
+    setAuction(fetchedAuction);
+    if (fetchedAuction) {
+        // In a real app, bids would be fetched for the auction
+        const initialBids = mockBids.filter(b => fetchedAuction.currentLowestBid && b.amount >= fetchedAuction.currentLowestBid).sort((a,b) => a.time.getTime() - b.time.getTime());
+        setBids(initialBids);
+        setCurrentLowestBid(fetchedAuction.currentLowestBid);
+        if (fetchedAuction.endTime) {
+            setIsFinished(new Date() > new Date(fetchedAuction.endTime));
+        }
     }
-    fetchAuction();
-  }, [getAuctionById, params.id]);
+  }, [getAuctionById]);
 
   useEffect(() => {
-    if (auction) {
-      // In a real app, bids would be fetched for the auction
-      const initialBids = mockBids.filter(b => auction.currentLowestBid && b.amount >= auction.currentLowestBid).sort((a,b) => a.time.getTime() - b.time.getTime());
-      setBids(initialBids);
-      setCurrentLowestBid(auction.currentLowestBid);
-      if (auction.endTime) {
-        setIsFinished(new Date() > new Date(auction.endTime));
-      }
+    if (params.id) {
+        fetchAuction(params.id);
     }
-  }, [auction]);
+  }, [params.id, fetchAuction]);
 
 
   if (auction === null) {
@@ -102,7 +102,16 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
     if (currentLowestBid === null) return;
     
     const newBid = parseFloat(bidAmount);
-    if (!newBid || newBid >= currentLowestBid) {
+    if (isNaN(newBid) || newBid <= 0) {
+        toast({
+            variant: "destructive",
+            title: "Invalid Bid",
+            description: "Please enter a valid bid amount.",
+        });
+        return;
+    }
+
+    if (newBid >= currentLowestBid) {
       toast({
         variant: "destructive",
         title: "Invalid Bid",
@@ -112,7 +121,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
     }
 
     const newBidEntry = { user: "You", amount: newBid, time: new Date() };
-    setBids([newBidEntry, ...bids]);
+    setBids(prevBids => [newBidEntry, ...prevBids]);
     setCurrentLowestBid(newBid);
     setBidAmount("");
     toast({
@@ -129,7 +138,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
         <Card>
           <CardHeader>
             <h1 className="text-4xl font-headline font-bold">{auction.title}</h1>
-            <CardDescription>Auction ID: {params.id}</CardDescription>
+            <CardDescription>Auction ID: {auction.id}</CardDescription>
           </CardHeader>
           <CardContent>
              <div className="relative h-96 w-full rounded-lg overflow-hidden mb-6">
