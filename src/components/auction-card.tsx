@@ -1,19 +1,13 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, DollarSign, ArrowRight } from 'lucide-react';
 import CountdownTimer from './countdown-timer';
+import type { Auction } from '@/context/AuctionContext';
 
-export interface Auction {
-  id: string;
-  title: string;
-  description: string;
-  currentLowestBid: number;
-  endTime: Date;
-  imageUrl: string;
-  imageHint: string;
-}
+export { type Auction };
 
 export function AuctionCard({ auction }: { auction: Auction }) {
   return (

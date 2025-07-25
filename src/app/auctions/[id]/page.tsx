@@ -1,6 +1,7 @@
+
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,21 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, DollarSign, Gavel, History, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
+import { useAuctions } from "@/context/AuctionContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const mockAuction = {
-  id: "1",
-  title: "Government Contract for Office Supplies",
-  description: "We are seeking competitive bids for a 12-month contract to supply a full range of standard office materials for a government facility. The contract includes paper, writing instruments, toner cartridges, and other common consumables. Bidders must demonstrate capacity for timely delivery and quality assurance.",
-  currentLowestBid: 15000,
-  endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), 
-  imageUrl: "https://placehold.co/800x600.png",
-  imageHint: "office supplies contract",
-  bids: [
+const mockBids = [
     { user: "Supplier Inc.", amount: 15500, time: new Date(Date.now() - 2 * 60 * 60 * 1000) },
     { user: "OfficeMax Pro", amount: 15200, time: new Date(Date.now() - 1 * 60 * 60 * 1000) },
     { user: "PencilPushers LLC", amount: 15000, time: new Date(Date.now() - 30 * 60 * 1000) },
-  ],
-};
+];
 
 type Bid = {
   user: string;
@@ -34,13 +28,64 @@ type Bid = {
 
 export default function AuctionPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
+  const { getAuctionById } = useAuctions();
+  const auction = getAuctionById(params.id);
+
   const [isFinished, setIsFinished] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
-  const [bids, setBids] = useState<Bid[]>(mockAuction.bids);
-  const [currentLowestBid, setCurrentLowestBid] = useState(mockAuction.currentLowestBid);
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [currentLowestBid, setCurrentLowestBid] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (auction) {
+      // In a real app, bids would be fetched for the auction
+      const initialBids = mockBids.filter(b => b.amount >= auction.currentLowestBid).sort((a,b) => a.time.getTime() - b.time.getTime());
+      setBids(initialBids);
+      setCurrentLowestBid(auction.currentLowestBid);
+    }
+  }, [auction]);
+
+
+  if (!auction) {
+    return (
+        <div className="grid md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-8">
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-10 w-3/4" />
+                        <Skeleton className="h-4 w-1/4" />
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-96 w-full rounded-lg mb-6" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full mt-2" />
+                        <Skeleton className="h-4 w-3/4 mt-2" />
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="space-y-6 md:col-span-1">
+                 <Card className="sticky top-24">
+                    <CardHeader>
+                        <Skeleton className="h-8 w-1/2" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-6 w-1/4 mx-auto" />
+                        <Separator />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </CardContent>
+                 </Card>
+            </div>
+        </div>
+    )
+  }
+  
   const handleBidSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentLowestBid === null) return;
+    
     const newBid = parseFloat(bidAmount);
     if (!newBid || newBid >= currentLowestBid) {
       toast({
@@ -68,14 +113,14 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
       <div className="md:col-span-2 space-y-8">
         <Card>
           <CardHeader>
-            <h1 className="text-4xl font-headline font-bold">{mockAuction.title}</h1>
+            <h1 className="text-4xl font-headline font-bold">{auction.title}</h1>
             <CardDescription>Auction ID: {params.id}</CardDescription>
           </CardHeader>
           <CardContent>
              <div className="relative h-96 w-full rounded-lg overflow-hidden mb-6">
-                <Image src={mockAuction.imageUrl} alt={mockAuction.title} layout="fill" objectFit="cover" data-ai-hint={mockAuction.imageHint} />
+                <Image src={auction.imageUrl} alt={auction.title} layout="fill" objectFit="cover" data-ai-hint={auction.imageHint} />
             </div>
-            <p className="text-muted-foreground">{mockAuction.description}</p>
+            <p className="text-muted-foreground">{auction.description}</p>
           </CardContent>
         </Card>
 
@@ -111,15 +156,17 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-             <div className="text-center bg-primary/10 p-4 rounded-lg">
-                <p className="text-sm text-primary font-medium">Current Lowest Bid</p>
-                <p className="text-4xl font-bold text-primary">${currentLowestBid.toLocaleString()}</p>
-            </div>
+             {currentLowestBid !== null && (
+                <div className="text-center bg-primary/10 p-4 rounded-lg">
+                    <p className="text-sm text-primary font-medium">Current Lowest Bid</p>
+                    <p className="text-4xl font-bold text-primary">${currentLowestBid.toLocaleString()}</p>
+                </div>
+              )}
 
             <div className="text-center border p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Time Remaining</p>
                 <div className="text-2xl font-bold">
-                    <CountdownTimer endTime={mockAuction.endTime} onExpire={() => setIsFinished(true)} />
+                    <CountdownTimer endTime={auction.endTime} onExpire={() => setIsFinished(true)} />
                 </div>
             </div>
             <div className="flex items-center justify-center text-sm text-muted-foreground gap-2">
@@ -133,7 +180,9 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
                     <Bell className="h-4 w-4 !text-green-700" />
                     <AlertTitle className="font-headline text-green-800">Auction Ended!</AlertTitle>
                     <AlertDescription>
-                        The winner is <span className="font-bold">{winner?.user}</span> with a bid of <span className="font-bold">${winner?.amount.toLocaleString()}</span>.
+                        {winner ? (
+                          <>The winner is <span className="font-bold">{winner?.user}</span> with a bid of <span className="font-bold">${winner?.amount.toLocaleString()}</span>.</>
+                        ) : "No bids were placed."}
                     </AlertDescription>
                 </Alert>
             ) : (
@@ -151,10 +200,11 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
                                 value={bidAmount}
                                 onChange={(e) => setBidAmount(e.target.value)}
                                 required 
+                                disabled={currentLowestBid === null}
                             />
                         </div>
                     </div>
-                    <Button type="submit" className="w-full h-12 text-lg">
+                    <Button type="submit" className="w-full h-12 text-lg" disabled={currentLowestBid === null}>
                         Submit Bid
                     </Button>
                 </form>
