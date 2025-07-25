@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -83,7 +84,7 @@ export default function AdminDashboard() {
              <Card>
               <CardHeader>
                 <CardTitle>User Management</CardTitle>
-              </CardHeader>
+              </Header>
               <CardContent>
                 <Table>
                   <TableHeader>
