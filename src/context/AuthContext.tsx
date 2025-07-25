@@ -33,16 +33,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUser(user);
+  const checkAdminRole = async (user: User) => {
+    if (user.email === ADMIN_EMAIL) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists() && userDoc.data().role === 'admin') {
             setIsAdmin(true);
         } else {
-            setIsAdmin(user.email === ADMIN_EMAIL);
+            // This could be the case where the admin user doc hasn't been created yet
+            // or the role is not set. We can default to email check as a fallback.
+            setIsAdmin(true);
         }
+    } else {
+        setIsAdmin(false);
+    }
+  }
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user);
+        await checkAdminRole(user);
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -53,32 +63,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const login = (email: string, pass: string) => {
-    return signInWithEmailAndPassword(auth, email, pass);
+  const login = async (email: string, pass: string) => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    if(userCredential.user) {
+        // After login, we explicitly check the admin role
+        await checkAdminRole(userCredential.user);
+    }
+    return userCredential;
   };
 
   const signup = async (email: string, pass: string, name: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
-    // Update user profile
     await updateProfile(user, { displayName: name });
+    
+    const role = user.email === ADMIN_EMAIL ? 'admin' : 'user';
 
-    // Set user role in Firestore
     await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
         displayName: name,
-        role: user.email === ADMIN_EMAIL ? 'admin' : 'user'
+        role: role
     });
     
-    // Manually set the user in state to reflect the displayName update immediately
     setUser({ ...user, displayName: name });
+    setIsAdmin(role === 'admin');
 
     return userCredential;
   };
 
   const logout = () => {
+    setIsAdmin(false);
     return signOut(auth).then(() => {
         router.push('/login');
     });
@@ -93,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
