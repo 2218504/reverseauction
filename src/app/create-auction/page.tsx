@@ -10,17 +10,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { DollarSign, KeyRound } from 'lucide-react';
 import { useAuctions } from '@/context/AuctionContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CreateAuctionPage() {
   const router = useRouter();
   const { addAuction } = useAuctions();
   const { toast } = useToast();
+  const { user, isAdmin, loading: authLoading } = useAuth();
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startPrice, setStartPrice] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !isAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Unauthorized",
+        description: "You do not have permission to create an auction.",
+      });
+      router.push('/');
+    }
+  }, [user, isAdmin, authLoading, router, toast]);
 
   const getMinDateTime = () => {
     const now = new Date();
@@ -72,6 +86,10 @@ export default function CreateAuctionPage() {
         setLoading(false);
     }
   };
+  
+  if (authLoading || !isAdmin) {
+    return <div className="text-center">Loading...</div>;
+  }
 
   return (
     <div className="max-w-3xl mx-auto">

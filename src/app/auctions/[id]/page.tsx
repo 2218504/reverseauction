@@ -12,13 +12,9 @@ import { Bell, DollarSign, Gavel, History, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { useAuctions, Auction } from "@/context/AuctionContext";
+import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const mockBids = [
-    { user: "Supplier Inc.", amount: 15500, time: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-    { user: "OfficeMax Pro", amount: 15200, time: new Date(Date.now() - 1 * 60 * 60 * 1000) },
-    { user: "PencilPushers LLC", amount: 15000, time: new Date(Date.now() - 30 * 60 * 1000) },
-];
+import { useRouter } from "next/navigation";
 
 type Bid = {
   user: string;
@@ -29,35 +25,84 @@ type Bid = {
 export default function AuctionPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { getAuctionById } = useAuctions();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  
   const [auction, setAuction] = useState<Auction | undefined | null>(null);
 
   const [isFinished, setIsFinished] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
   const [bids, setBids] = useState<Bid[]>([]);
   const [currentLowestBid, setCurrentLowestBid] = useState<number | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
   const fetchAuction = useCallback(async (id: string) => {
+    setPageLoading(true);
     const fetchedAuction = await getAuctionById(id);
     setAuction(fetchedAuction);
     if (fetchedAuction) {
         // In a real app, bids would be fetched for the auction
-        const initialBids = mockBids.filter(b => fetchedAuction.currentLowestBid && b.amount >= fetchedAuction.currentLowestBid).sort((a,b) => a.time.getTime() - b.time.getTime());
-        setBids(initialBids);
+        // For now, let's keep mock bids or an empty array
+        setBids([]);
         setCurrentLowestBid(fetchedAuction.currentLowestBid);
         if (fetchedAuction.endTime) {
             setIsFinished(new Date() > new Date(fetchedAuction.endTime));
         }
     }
+    setPageLoading(false);
   }, [getAuctionById]);
 
   useEffect(() => {
     if (params.id) {
-        fetchAuction(params.id);
+        fetchAuction(params.id as string);
     }
   }, [params.id, fetchAuction]);
 
 
-  if (auction === null) {
+  const handleBidSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentLowestBid === null) return;
+    
+    if(!user) {
+        toast({
+            variant: "destructive",
+            title: "Not Logged In",
+            description: "You must be logged in to place a bid.",
+        });
+        router.push('/login');
+        return;
+    }
+
+    const newBid = parseFloat(bidAmount);
+    if (isNaN(newBid) || newBid <= 0) {
+        toast({
+            variant: "destructive",
+            title: "Invalid Bid",
+            description: "Please enter a valid bid amount.",
+        });
+        return;
+    }
+
+    if (newBid >= currentLowestBid) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Bid",
+        description: `Your bid must be lower than the current lowest bid of $${currentLowestBid.toLocaleString()}.`,
+      });
+      return;
+    }
+
+    const newBidEntry = { user: user.displayName || "You", amount: newBid, time: new Date() };
+    setBids(prevBids => [newBidEntry, ...prevBids]);
+    setCurrentLowestBid(newBid);
+    setBidAmount("");
+    toast({
+      title: "Bid Placed!",
+      description: `Your bid of $${newBid.toLocaleString()} has been successfully submitted.`,
+    });
+  };
+  
+  if (pageLoading || authLoading) {
     return (
         <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-8">
@@ -97,39 +142,6 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
     return <div>Auction not found</div>;
   }
   
-  const handleBidSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (currentLowestBid === null) return;
-    
-    const newBid = parseFloat(bidAmount);
-    if (isNaN(newBid) || newBid <= 0) {
-        toast({
-            variant: "destructive",
-            title: "Invalid Bid",
-            description: "Please enter a valid bid amount.",
-        });
-        return;
-    }
-
-    if (newBid >= currentLowestBid) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Bid",
-        description: `Your bid must be lower than the current lowest bid of $${currentLowestBid.toLocaleString()}.`,
-      });
-      return;
-    }
-
-    const newBidEntry = { user: "You", amount: newBid, time: new Date() };
-    setBids(prevBids => [newBidEntry, ...prevBids]);
-    setCurrentLowestBid(newBid);
-    setBidAmount("");
-    toast({
-      title: "Bid Placed!",
-      description: `Your bid of $${newBid.toLocaleString()} has been successfully submitted.`,
-    });
-  };
-  
   const winner = bids.length > 0 ? bids.sort((a,b) => a.amount - b.amount)[0] : null;
 
   return (
@@ -142,7 +154,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
           </CardHeader>
           <CardContent>
              <div className="relative h-96 w-full rounded-lg overflow-hidden mb-6">
-                <Image src={auction.imageUrl} alt={auction.title} layout="fill" objectFit="cover" data-ai-hint={auction.imageHint} />
+                <Image src={auction.imageUrl} alt={auction.title} fill objectFit="cover" data-ai-hint={auction.imageHint} />
             </div>
             <p className="text-muted-foreground">{auction.description}</p>
           </CardContent>
@@ -225,12 +237,12 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
                                 value={bidAmount}
                                 onChange={(e) => setBidAmount(e.target.value)}
                                 required 
-                                disabled={currentLowestBid === null}
+                                disabled={currentLowestBid === null || !user}
                             />
                         </div>
                     </div>
-                    <Button type="submit" className="w-full h-12 text-lg" disabled={currentLowestBid === null}>
-                        Submit Bid
+                    <Button type="submit" className="w-full h-12 text-lg" disabled={currentLowestBid === null || !user}>
+                        {user ? "Submit Bid" : "Login to Bid"}
                     </Button>
                 </form>
             )}
