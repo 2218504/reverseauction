@@ -94,7 +94,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
 
   const handleBidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auction || !user || isSubmitting) return;
+    if (!auction || !user || isSubmitting || isAdmin) return;
 
     setIsSubmitting(true);
 
@@ -110,7 +110,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
     }
     
     // Reverse auction logic: bid must be lower than the current lowest bid
-    if (bids.length > 0 && newBidAmount >= bids[0].amount && !isAdmin) { // Admin can override
+    if (bids.length > 0 && newBidAmount >= bids[0].amount) {
       toast({
         variant: "destructive",
         title: "Invalid Bid",
@@ -290,9 +290,13 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                         ) : "No bids were placed."}
                     </AlertDescription>
                 </Alert>
+            ) : isAdmin ? (
+                <div className="text-center text-muted-foreground p-4 bg-secondary/50 rounded-lg">
+                    <p>Admins cannot participate in bidding.</p>
+                </div>
             ) : (
                 <div className="space-y-3">
-                    {userCurrentBid && (
+                    {userCurrentBid && !isAdmin && (
                       <div className="text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
                         <p className="text-sm text-blue-600 font-medium">Your Current Bid</p>
                         <p className="text-2xl font-bold text-blue-700">${userCurrentBid.amount.toLocaleString()}</p>
@@ -314,9 +318,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                                     placeholder={
                                       userCurrentBid
                                         ? `Lower than $${userCurrentBid.amount.toLocaleString()}`
-                                        : isAdmin
-                                          ? `Lower than $${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}`
-                                          : 'Enter your bid amount'
+                                        : 'Enter your bid amount'
                                     }
                                     className="pl-10 text-lg h-12"
                                     value={bidAmount}
@@ -339,3 +341,5 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
     </div>
   );
 }
+
+    
