@@ -84,7 +84,7 @@ export default function AdminDashboard() {
              <Card>
               <CardHeader>
                 <CardTitle>User Management</CardTitle>
-              </Header>
+              </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
