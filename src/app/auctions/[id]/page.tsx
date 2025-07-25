@@ -181,7 +181,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
 
             <div className="text-center border p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Time Remaining</p>
-                <div className="text-2xl font-bold">
+                <div className="text-xl font-bold">
                     <CountdownTimer endTime={auction.endTime} onExpire={() => setIsFinished(true)} />
                 </div>
             </div>
