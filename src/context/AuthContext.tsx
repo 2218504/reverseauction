@@ -8,7 +8,8 @@ import {
   User, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signOut 
+  signOut,
+  updateProfile
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -60,20 +61,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
+    // Update user profile
+    await updateProfile(user, { displayName: name });
+
     // Set user role in Firestore
     await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
-        name: name,
+        displayName: name,
         role: user.email === ADMIN_EMAIL ? 'admin' : 'user'
     });
+    
+    // Manually set the user in state to reflect the displayName update immediately
+    setUser({ ...user, displayName: name });
 
     return userCredential;
   };
 
   const logout = () => {
-    router.push('/login');
-    return signOut(auth);
+    return signOut(auth).then(() => {
+        router.push('/login');
+    });
   };
 
   const value = {
@@ -85,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

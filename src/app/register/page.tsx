@@ -21,9 +21,21 @@ export default function RegisterPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 6) {
+        toast({
+            variant: 'destructive',
+            title: 'Registration Failed',
+            description: 'Password must be at least 6 characters long.',
+        });
+        return;
+    }
     setLoading(true);
     try {
       await signup(email, password, name);
+      toast({
+          title: 'Account Created',
+          description: "You've been successfully registered and logged in.",
+      });
       router.push('/');
     } catch (error: any) {
       toast({
