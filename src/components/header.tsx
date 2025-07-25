@@ -1,6 +1,7 @@
 
 import Link from 'next/link';
-import { Gavel, User, LogOut, CircleUserRound, PlusCircle, ShieldCheck } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Gavel, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -9,6 +10,8 @@ import { Skeleton } from './ui/skeleton';
 
 export default function Header() {
   const { user, logout, isAdmin, loading } = useAuth();
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -24,21 +27,23 @@ export default function Header() {
             <span className="text-xl font-headline font-bold text-gray-800">ReverseAuctionPro</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
-              Auctions
-            </Link>
-             {user && isAdmin && (
-              <>
-                <Link href="/create-auction" className="text-muted-foreground hover:text-primary transition-colors">
-                  Create Auction
-                </Link>
-                <Link href="/admin" className="text-muted-foreground hover:text-primary transition-colors">
-                  Admin
-                </Link>
-              </>
-            )}
-          </nav>
+          {!isHomePage && (
+            <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+              <Link href="/auctions" className="text-muted-foreground hover:text-primary transition-colors">
+                Auctions
+              </Link>
+              {user && isAdmin && (
+                <>
+                  <Link href="/create-auction" className="text-muted-foreground hover:text-primary transition-colors">
+                    Create Auction
+                  </Link>
+                  <Link href="/admin" className="text-muted-foreground hover:text-primary transition-colors">
+                    Admin
+                  </Link>
+                </>
+              )}
+            </nav>
+          )}
 
           <div className="flex items-center gap-4">
             {loading ? (
@@ -70,11 +75,18 @@ export default function Header() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             ) : (
-              <Button asChild>
-                <Link href="/login">
-                  <User className="mr-2 h-4 w-4" /> Login
-                </Link>
-              </Button>
+              <div className='flex items-center gap-2'>
+                <Button asChild variant="ghost">
+                  <Link href="/login">
+                     Login
+                  </Link>
+                </Button>
+                 <Button asChild>
+                  <Link href="/register">
+                    Sign Up
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>

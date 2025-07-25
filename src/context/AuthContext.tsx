@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -11,7 +12,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
@@ -31,93 +32,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        if (user) {
-          console.log('User authenticated:', user.uid);
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().role === 'admin') {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
-          }
-          setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists() && userDoc.data().role === 'admin') {
+          setIsAdmin(true);
         } else {
-          setUser(null);
           setIsAdmin(false);
         }
-      } catch (error: any) {
-        console.error('Error in auth state change:', error);
-      } finally {
-        setLoading(false);
+        setUser(currentUser);
+        if (pathname === '/login' || pathname === '/register') {
+          router.push('/auctions');
+        }
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+        if (pathname !== '/' && pathname !== '/login' && pathname !== '/register') {
+           router.push('/');
+        }
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router, pathname]);
 
   const login = async (email: string, pass: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      router.push('/');
     } catch (error: any) {
       console.error('Login error:', error);
-      throw error; // Re-throw to handle in UI
+      throw error;
     }
   };
 
   const signup = async (email: string, pass: string, name: string) => {
     try {
-      console.log('Starting signup process...');
-      
-      // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      const user = userCredential.user;
-      console.log('User created successfully:', user.uid);
+      const newUser = userCredential.user;
       
-      // Update display name
-      await updateProfile(user, { displayName: name });
-      console.log('Profile updated successfully');
+      await updateProfile(newUser, { displayName: name });
       
-      // Determine role
-      const role = user.email === ADMIN_EMAIL ? 'admin' : 'user';
-      console.log('User role determined:', role);
+      const role = newUser.email === ADMIN_EMAIL ? 'admin' : 'user';
 
-      // Create user document in Firestore
       const userDocData = {
-        uid: user.uid,
-        email: user.email,
+        uid: newUser.uid,
+        email: newUser.email,
         displayName: name,
         role: role,
-        createdAt: new Date().toISOString(), // Add timestamp
+        createdAt: new Date().toISOString(),
       };
-
-      console.log('Creating Firestore document with data:', userDocData);
       
-      await setDoc(doc(db, "users", user.uid), userDocData);
-      console.log('Firestore document created successfully');
-      
-      router.push('/');
+      await setDoc(doc(db, "users", newUser.uid), userDocData);
     } catch (error: any) {
       console.error('Signup error:', error);
-      
-      // If Firestore write fails but user was created, we should handle this
-      if (error.code === 'permission-denied') {
-        console.error('Firestore permission denied. Check your security rules.');
-      } else if (error.code === 'unavailable') {
-        console.error('Firestore is unavailable. Check your internet connection.');
-      }
-      
-      throw error; // Re-throw to handle in UI
+      throw error;
     }
   };
 
   const logout = async () => {
     try {
       await signOut(auth);
-      router.push('/login');
     } catch (error: any) {
       console.error('Logout error:', error);
       throw error;
@@ -133,7 +112,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {loading ? (
+        <div className="flex justify-center items-center h-screen">
+          <div>Loading...</div>
+        </div>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
