@@ -29,7 +29,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      // Redirection is now handled by the useEffect hook
+      // Redirection is now handled by the AuthProvider
     } catch (error: any) {
       toast({
         variant: 'destructive',
