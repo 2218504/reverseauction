@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Clock, DollarSign, ArrowRight } from 'lucide-react';
 import CountdownTimer from './countdown-timer';
 import type { Auction } from '@/context/AuctionContext';
+import { useAuth } from '@/context/AuthContext';
 
 export { type Auction };
 
 export function AuctionCard({ auction }: { auction: Auction }) {
+  const { isAdmin } = useAuth();
   const isCompleted = auction.status === 'completed';
   
   return (
@@ -33,7 +35,11 @@ export function AuctionCard({ auction }: { auction: Auction }) {
       <CardContent className="flex-grow p-6 pt-0">
         <div className="flex items-center text-lg font-bold text-primary mb-4">
           <DollarSign className="mr-2 h-5 w-5" />
-          <span>{isCompleted ? 'Final' : 'Current'} Bid: ${auction.currentLowestBid.toLocaleString()}</span>
+          {isAdmin ? (
+            <span>{isCompleted ? 'Final' : 'Lowest'} Bid: ${auction.currentLowestBid.toLocaleString()}</span>
+          ) : (
+            <span>Starting Price: ${auction.currentLowestBid.toLocaleString()}</span>
+          )}
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <Clock className="mr-2 h-4 w-4" />

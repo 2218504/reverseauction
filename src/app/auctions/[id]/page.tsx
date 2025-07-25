@@ -253,10 +253,12 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center bg-primary/10 p-4 rounded-lg">
-                <p className="text-sm text-primary font-medium">Current Lowest Bid</p>
-                <p className="text-4xl font-bold text-primary">${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}</p>
-            </div>
+            {isAdmin && (
+                <div className="text-center bg-primary/10 p-4 rounded-lg">
+                    <p className="text-sm text-primary font-medium">Current Lowest Bid</p>
+                    <p className="text-4xl font-bold text-primary">${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}</p>
+                </div>
+            )}
               
             <div className="text-center border p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">
@@ -281,8 +283,10 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                     <Bell className="h-4 w-4 !text-green-700" />
                     <AlertTitle className="font-headline text-green-800">Auction Ended!</AlertTitle>
                     <AlertDescription>
-                        {winner ? (
+                        {winner && isAdmin ? (
                           <>The winner is <span className="font-bold">{winner?.user}</span> with a bid of <span className="font-bold">${winner?.amount.toLocaleString()}</span>.</>
+                        ) : winner && !isAdmin ? (
+                          <>The auction has concluded.</>
                         ) : "No bids were placed."}
                     </AlertDescription>
                 </Alert>
@@ -307,7 +311,13 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                                     id="bid" 
                                     type="number" 
                                     step="any"
-                                    placeholder={userCurrentBid ? `Lower than $${userCurrentBid.amount.toLocaleString()}` : `Lower than $${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}`}
+                                    placeholder={
+                                      userCurrentBid
+                                        ? `Lower than $${userCurrentBid.amount.toLocaleString()}`
+                                        : isAdmin
+                                          ? `Lower than $${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}`
+                                          : 'Enter your bid amount'
+                                    }
                                     className="pl-10 text-lg h-12"
                                     value={bidAmount}
                                     onChange={(e) => setBidAmount(e.target.value)}
