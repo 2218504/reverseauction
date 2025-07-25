@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DollarSign, KeyRound } from 'lucide-react';
 import { useAuctions } from '@/context/AuctionContext';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CreateAuctionPage() {
   const router = useRouter();
   const { addAuction } = useAuctions();
+  const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startPrice, setStartPrice] = useState('');
@@ -20,21 +22,47 @@ export default function CreateAuctionPage() {
   const [endTime, setEndTime] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const getMinDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  };
+  
+  const [minDateTime, setMinDateTime] = useState('');
+
+  useEffect(() => {
+    setMinDateTime(getMinDateTime());
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const newAuction = {
-      title,
-      description,
-      currentLowestBid: parseFloat(startPrice),
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
-      imageUrl: "https://placehold.co/600x400.png",
-      imageHint: "newly created auction"
-    };
-    await addAuction(newAuction);
-    setLoading(false);
-    router.push('/');
+    try {
+      const newAuction = {
+        title,
+        description,
+        currentLowestBid: parseFloat(startPrice),
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        imageUrl: "https://placehold.co/600x400.png",
+        imageHint: "newly created auction"
+      };
+      await addAuction(newAuction);
+      toast({
+        title: "Auction Created",
+        description: "Your new auction has been created successfully.",
+      });
+      router.push('/');
+    } catch (error) {
+       console.error("Failed to create auction:", error);
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create the auction. Please try again.",
+      });
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -64,11 +92,11 @@ export default function CreateAuctionPage() {
               </div>
                <div className="space-y-2">
                   <Label htmlFor="startTime">Start Date & Time</Label>
-                  <Input id="startTime" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} required/>
+                  <Input id="startTime" type="datetime-local" value={startTime} min={minDateTime} onChange={(e) => setStartTime(e.target.value)} required/>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="endTime">End Date & Time</Label>
-                <Input id="endTime" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required/>
+                <Input id="endTime" type="datetime-local" value={endTime} min={startTime || minDateTime} onChange={(e) => setEndTime(e.target.value)} required/>
               </div>
             </div>
             <div className="space-y-2">
