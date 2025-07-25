@@ -16,6 +16,7 @@ export default function CreateAuctionPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startPrice, setStartPrice] = useState('');
+  const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -25,6 +26,7 @@ export default function CreateAuctionPage() {
       title,
       description,
       currentLowestBid: parseFloat(startPrice),
+      startTime: new Date(startTime),
       endTime: new Date(endTime),
       imageUrl: "https://placehold.co/600x400.png",
       imageHint: "newly created auction"
@@ -51,14 +53,18 @@ export default function CreateAuctionPage() {
               <Textarea id="description" placeholder="Provide a detailed description of the services or goods required." value={description} onChange={(e) => setDescription(e.target.value)} required/>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
+               <div className="space-y-2">
                 <Label htmlFor="startPrice">Starting Price (Max Bid)</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input id="startPrice" type="number" placeholder="25000" className="pl-10" value={startPrice} onChange={(e) => setStartPrice(e.target.value)} required/>
                 </div>
               </div>
-              <div className="space-y-2">
+               <div className="space-y-2">
+                  <Label htmlFor="startTime">Start Date & Time</Label>
+                  <Input id="startTime" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} required/>
+              </div>
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="endTime">End Date & Time</Label>
                 <Input id="endTime" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required/>
               </div>

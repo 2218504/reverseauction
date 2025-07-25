@@ -10,8 +10,10 @@ import type { Auction } from '@/context/AuctionContext';
 export { type Auction };
 
 export function AuctionCard({ auction }: { auction: Auction }) {
+  const isCompleted = new Date(auction.endTime) < new Date();
+  
   return (
-    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+    <Card className={`flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isCompleted ? 'opacity-70 bg-secondary/50' : ''}`}>
       <CardHeader className="p-0">
         <div className="relative h-48 w-full">
           <Image
@@ -21,20 +23,21 @@ export function AuctionCard({ auction }: { auction: Auction }) {
             className="object-cover"
             data-ai-hint={auction.imageHint}
           />
+           {isCompleted && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-bold text-xl">Completed</span></div>}
         </div>
         <div className="p-6">
           <CardTitle className="font-headline text-xl mb-2">{auction.title}</CardTitle>
-          <CardDescription>{auction.description}</CardDescription>
+          <CardDescription className="line-clamp-2">{auction.description}</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-6 pt-0">
         <div className="flex items-center text-lg font-bold text-primary mb-4">
           <DollarSign className="mr-2 h-5 w-5" />
-          <span>Current Bid: ${auction.currentLowestBid.toLocaleString()}</span>
+          <span>{isCompleted ? 'Final' : 'Current'} Bid: ${auction.currentLowestBid.toLocaleString()}</span>
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <Clock className="mr-2 h-4 w-4" />
-          <CountdownTimer endTime={auction.endTime} />
+          <CountdownTimer startTime={auction.startTime} endTime={auction.endTime} />
         </div>
       </CardContent>
       <CardFooter className="p-6 pt-0">

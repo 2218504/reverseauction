@@ -8,6 +8,7 @@ export interface Auction {
   title: string;
   description: string;
   currentLowestBid: number;
+  startTime: Date;
   endTime: Date;
   imageUrl: string;
   imageHint: string;
@@ -19,6 +20,7 @@ const mockAuctions: Auction[] = [
     title: "Government Contract for Office Supplies",
     description: "Seeking bids for a 12-month contract to supply standard office materials.",
     currentLowestBid: 15000,
+    startTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Started yesterday
     endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "office supplies"
@@ -28,6 +30,7 @@ const mockAuctions: Auction[] = [
     title: "Website Redesign Project",
     description: "Complete overhaul of a corporate website. Seeking experienced development agencies.",
     currentLowestBid: 8500,
+    startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // Starts tomorrow
     endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "web design"
@@ -37,7 +40,8 @@ const mockAuctions: Auction[] = [
     title: "Landscaping Services for Business Park",
     description: "Year-round landscaping and maintenance services for a 5-acre business park.",
     currentLowestBid: 22000,
-    endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
+    startTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // Started 2 days ago
+    endTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Ended yesterday
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "landscaping park"
   },
@@ -46,6 +50,7 @@ const mockAuctions: Auction[] = [
     title: "Janitorial Services Contract",
     description: "Nightly cleaning services for a 50,000 sq ft office building.",
     currentLowestBid: 7800,
+    startTime: new Date(Date.now()), // Starts now
     endTime: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
     imageUrl: "https://placehold.co/600x400.png",
     imageHint: "cleaning service"
