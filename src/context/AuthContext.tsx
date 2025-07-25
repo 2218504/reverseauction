@@ -36,13 +36,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        setUser(user);
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists() && userDoc.data().role === 'admin') {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
         }
-        setUser(user);
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -82,10 +82,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return userCredential;
   };
 
-  const logout = () => {
-    return signOut(auth).then(() => {
-        router.push('/login');
-    });
+  const logout = async () => {
+    await signOut(auth);
+    router.push('/login');
   };
 
   const value = {
@@ -97,7 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
