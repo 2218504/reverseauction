@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Gavel, User, LogOut } from 'lucide-react';
+import { Gavel, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -11,7 +11,6 @@ import { Skeleton } from './ui/skeleton';
 export default function Header() {
   const { user, logout, isAdmin, loading } = useAuth();
   const pathname = usePathname();
-  const isHomePage = pathname === '/';
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -27,12 +26,12 @@ export default function Header() {
             <span className="text-xl font-headline font-bold text-gray-800">ReverseAuctionPro</span>
           </Link>
 
-          {!isHomePage && (
+          {user && (
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
               <Link href="/auctions" className="text-muted-foreground hover:text-primary transition-colors">
                 Auctions
               </Link>
-              {user && isAdmin && (
+              {isAdmin && (
                 <>
                   <Link href="/create-auction" className="text-muted-foreground hover:text-primary transition-colors">
                     Create Auction
@@ -83,7 +82,7 @@ export default function Header() {
                 </Button>
                  <Button asChild>
                   <Link href="/register">
-                    Sign Up
+                    Get Started
                   </Link>
                 </Button>
               </div>

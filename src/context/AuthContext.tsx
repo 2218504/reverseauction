@@ -36,71 +36,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setLoading(true);
       if (currentUser) {
+        setUser(currentUser);
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-        setUser(currentUser);
+        const userIsAdmin = userDoc.exists() && userDoc.data().role === 'admin';
+        setIsAdmin(userIsAdmin);
+
         if (pathname === '/login' || pathname === '/register') {
           router.push('/auctions');
         }
       } else {
         setUser(null);
         setIsAdmin(false);
-        if (pathname !== '/' && pathname !== '/login' && pathname !== '/register') {
-           router.push('/');
+        const protectedRoutes = ['/auctions', '/create-auction', '/admin'];
+        if(protectedRoutes.includes(pathname)) {
+            router.push('/login');
         }
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router, pathname]);
+  }, [pathname, router]);
 
   const login = async (email: string, pass: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-    } catch (error: any) {
-      console.error('Login error:', error);
-      throw error;
-    }
+    await signInWithEmailAndPassword(auth, email, pass);
   };
 
   const signup = async (email: string, pass: string, name: string) => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      const newUser = userCredential.user;
-      
-      await updateProfile(newUser, { displayName: name });
-      
-      const role = newUser.email === ADMIN_EMAIL ? 'admin' : 'user';
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    const newUser = userCredential.user;
+    
+    await updateProfile(newUser, { displayName: name });
+    
+    const role = newUser.email === ADMIN_EMAIL ? 'admin' : 'user';
 
-      const userDocData = {
-        uid: newUser.uid,
-        email: newUser.email,
-        displayName: name,
-        role: role,
-        createdAt: new Date().toISOString(),
-      };
-      
-      await setDoc(doc(db, "users", newUser.uid), userDocData);
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      throw error;
-    }
+    const userDocData = {
+      uid: newUser.uid,
+      email: newUser.email,
+      displayName: name,
+      role: role,
+      createdAt: new Date().toISOString(),
+    };
+    
+    await setDoc(doc(db, "users", newUser.uid), userDocData);
   };
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      throw error;
-    }
+    await signOut(auth);
+    router.push('/');
   };
 
   const value = {
@@ -112,17 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {loading ? (
-        <div className="flex justify-center items-center h-screen">
-          <div>Loading...</div>
-        </div>
-      ) : (
-        children
-      )}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
