@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -35,50 +34,94 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
-          setIsAdmin(true);
+      try {
+        if (user) {
+          console.log('User authenticated:', user.uid);
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists() && userDoc.data().role === 'admin') {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+          setUser(user);
         } else {
+          setUser(null);
           setIsAdmin(false);
         }
-        setUser(user);
-      } else {
-        setUser(null);
-        setIsAdmin(false);
+      } catch (error: any) {
+        console.error('Error in auth state change:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   const login = async (email: string, pass: string) => {
-    await signInWithEmailAndPassword(auth, email, pass);
-    router.push('/');
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      router.push('/');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error; // Re-throw to handle in UI
+    }
   };
 
   const signup = async (email: string, pass: string, name: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    const user = userCredential.user;
-    
-    await updateProfile(user, { displayName: name });
-    
-    const role = user.email === ADMIN_EMAIL ? 'admin' : 'user';
+    try {
+      console.log('Starting signup process...');
+      
+      // Create user account
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      const user = userCredential.user;
+      console.log('User created successfully:', user.uid);
+      
+      // Update display name
+      await updateProfile(user, { displayName: name });
+      console.log('Profile updated successfully');
+      
+      // Determine role
+      const role = user.email === ADMIN_EMAIL ? 'admin' : 'user';
+      console.log('User role determined:', role);
 
-    await setDoc(doc(db, "users", user.uid), {
+      // Create user document in Firestore
+      const userDocData = {
         uid: user.uid,
         email: user.email,
         displayName: name,
-        role: role
-    });
-    
-    router.push('/');
+        role: role,
+        createdAt: new Date().toISOString(), // Add timestamp
+      };
+
+      console.log('Creating Firestore document with data:', userDocData);
+      
+      await setDoc(doc(db, "users", user.uid), userDocData);
+      console.log('Firestore document created successfully');
+      
+      router.push('/');
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      
+      // If Firestore write fails but user was created, we should handle this
+      if (error.code === 'permission-denied') {
+        console.error('Firestore permission denied. Check your security rules.');
+      } else if (error.code === 'unavailable') {
+        console.error('Firestore is unavailable. Check your internet connection.');
+      }
+      
+      throw error; // Re-throw to handle in UI
+    }
   };
 
   const logout = async () => {
-    await signOut(auth);
-    router.push('/login');
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   };
 
   const value = {
