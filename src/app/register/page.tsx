@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,9 +15,16 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
+  const { signup, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+   useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/');
+    }
+  }, [user, authLoading, router]);
+
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +43,7 @@ export default function RegisterPage() {
           title: 'Account Created',
           description: "You've been successfully registered and logged in.",
       });
-      router.push('/');
+      // Redirection is handled by the AuthProvider now
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -46,6 +53,10 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading || (!authLoading && user)) {
+    return <div className="text-center">Loading...</div>;
+  }
 
 
   return (

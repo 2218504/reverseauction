@@ -33,26 +33,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
-  const checkAdminRole = async (user: User) => {
-    if (user.email === ADMIN_EMAIL) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
-            setIsAdmin(true);
-        } else {
-            // This could be the case where the admin user doc hasn't been created yet
-            // or the role is not set. We can default to email check as a fallback.
-            setIsAdmin(true);
-        }
-    } else {
-        setIsAdmin(false);
-    }
-  }
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
       if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
         setUser(user);
-        await checkAdminRole(user);
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -64,13 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, pass: string) => {
-    setLoading(true);
-    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    if(userCredential.user) {
-        await checkAdminRole(userCredential.user);
-    }
-    setLoading(false);
-    return userCredential;
+    return signInWithEmailAndPassword(auth, email, pass);
   };
 
   const signup = async (email: string, pass: string, name: string) => {
@@ -88,14 +73,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: role
     });
     
-    setUser({ ...user, displayName: name });
-    setIsAdmin(role === 'admin');
+    // The onAuthStateChanged listener will handle setting the user and admin state.
+    // This avoids race conditions.
+    if(role === 'admin') {
+      setIsAdmin(true);
+    }
 
     return userCredential;
   };
 
   const logout = () => {
-    setIsAdmin(false);
     return signOut(auth).then(() => {
         router.push('/login');
     });
@@ -110,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
