@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 export default function AuctionPage({ params: { id: auctionId } }: { params: { id: string } }) {
   const { toast } = useToast();
   const { getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction } = useAuctions();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
   
   const [auction, setAuction] = useState<Auction | undefined | null>(null);
@@ -110,7 +110,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
     }
     
     // Reverse auction logic: bid must be lower than the current lowest bid
-    if (bids.length > 0 && newBidAmount >= bids[0].amount) {
+    if (bids.length > 0 && newBidAmount >= bids[0].amount && !isAdmin) { // Admin can override
       toast({
         variant: "destructive",
         title: "Invalid Bid",
@@ -203,43 +203,45 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
           </CardContent>
         </Card>
 
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-headline"><History /> Bid History</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ul className="space-y-4">
-                    {bids.map((bid) => {
-                        const isUserBid = user && bid.userId === user.uid;
-                        return (
-                          <li 
-                            key={bid.id} 
-                            className={`flex justify-between items-center p-3 rounded-md ${
-                              isUserBid 
-                                ? 'bg-blue-50 border-2 border-blue-200' 
-                                : 'bg-secondary/50'
-                            }`}
-                          >
-                            <div className="flex items-center">
-                                <User className="h-5 w-5 mr-3 text-muted-foreground"/>
-                                <span className="font-medium">
-                                  {bid.user}
-                                  {isUserBid && <span className="text-blue-600 ml-1">(You)</span>}
-                                </span>
-                            </div>
-                            <div className="text-right">
-                                <p className={`font-bold text-lg ${isUserBid ? 'text-blue-600' : ''}`}>
-                                  ${bid.amount.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{bid.time.toLocaleTimeString()}</p>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    {bids.length === 0 && <p className="text-center text-muted-foreground py-4">No bids yet. Be the first!</p>}
-                </ul>
-            </CardContent>
-        </Card>
+        {isAdmin && (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 font-headline"><History /> Bid History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-4">
+                        {bids.map((bid) => {
+                            const isUserBid = user && bid.userId === user.uid;
+                            return (
+                              <li 
+                                key={bid.id} 
+                                className={`flex justify-between items-center p-3 rounded-md ${
+                                  isUserBid 
+                                    ? 'bg-blue-50 border-2 border-blue-200' 
+                                    : 'bg-secondary/50'
+                                }`}
+                              >
+                                <div className="flex items-center">
+                                    <User className="h-5 w-5 mr-3 text-muted-foreground"/>
+                                    <span className="font-medium">
+                                      {bid.user}
+                                      {isUserBid && <span className="text-blue-600 ml-1">(You)</span>}
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <p className={`font-bold text-lg ${isUserBid ? 'text-blue-600' : ''}`}>
+                                      ${bid.amount.toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{bid.time.toLocaleTimeString()}</p>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        {bids.length === 0 && <p className="text-center text-muted-foreground py-4">No bids yet. Be the first!</p>}
+                    </ul>
+                </CardContent>
+            </Card>
+        )}
       </div>
 
       <div className="space-y-6 md:col-span-1">
