@@ -1,13 +1,14 @@
 
 import Link from 'next/link';
-import { Gavel, User, LogOut, CircleUserRound } from 'lucide-react';
+import { Gavel, User, LogOut, CircleUserRound, PlusCircle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from './ui/skeleton';
 
 export default function Header() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, loading } = useAuth();
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -27,7 +28,7 @@ export default function Header() {
             <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
               Auctions
             </Link>
-            {user && isAdmin && (
+             {user && isAdmin && (
               <>
                 <Link href="/create-auction" className="text-muted-foreground hover:text-primary transition-colors">
                   Create Auction
@@ -40,7 +41,9 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {user ? (
+            {loading ? (
+                <Skeleton className="h-10 w-24" />
+            ) : user ? (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full">

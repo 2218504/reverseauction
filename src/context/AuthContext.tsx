@@ -18,8 +18,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
-  login: (email: string, pass: string) => Promise<any>;
-  signup: (email: string, pass: string, name: string) => Promise<any>;
+  login: (email: string, pass: string) => Promise<void>;
+  signup: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -36,13 +36,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setUser(user);
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists() && userDoc.data().role === 'admin') {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
         }
+        setUser(user);
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -54,9 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, pass: string) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+    await signInWithEmailAndPassword(auth, email, pass);
     router.push('/');
-    return userCredential;
   };
 
   const signup = async (email: string, pass: string, name: string) => {
@@ -74,12 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: role
     });
     
-    if(role === 'admin') {
-      setIsAdmin(true);
-    }
-    
     router.push('/');
-    return userCredential;
   };
 
   const logout = async () => {
@@ -96,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
