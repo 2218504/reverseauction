@@ -1,7 +1,9 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { collection, addDoc, getDocs, doc, getDoc, Timestamp } from "firebase/firestore";
+import { db } from '@/lib/firebase/firebase';
 
 export interface Auction {
   id: string;
@@ -14,71 +16,81 @@ export interface Auction {
   imageHint: string;
 }
 
-const mockAuctions: Auction[] = [
-  {
-    id: "1",
-    title: "Government Contract for Office Supplies",
-    description: "Seeking bids for a 12-month contract to supply standard office materials.",
-    currentLowestBid: 15000,
-    startTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Started yesterday
-    endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-    imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "office supplies"
-  },
-  {
-    id: "2",
-    title: "Website Redesign Project",
-    description: "Complete overhaul of a corporate website. Seeking experienced development agencies.",
-    currentLowestBid: 8500,
-    startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // Starts tomorrow
-    endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
-    imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "web design"
-  },
-  {
-    id: "3",
-    title: "Landscaping Services for Business Park",
-    description: "Year-round landscaping and maintenance services for a 5-acre business park.",
-    currentLowestBid: 22000,
-    startTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // Started 2 days ago
-    endTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Ended yesterday
-    imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "landscaping park"
-  },
-  {
-    id: "4",
-    title: "Janitorial Services Contract",
-    description: "Nightly cleaning services for a 50,000 sq ft office building.",
-    currentLowestBid: 7800,
-    startTime: new Date(Date.now()), // Starts now
-    endTime: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
-    imageUrl: "https://placehold.co/600x400.png",
-    imageHint: "cleaning service"
-  },
-];
+export interface AuctionData {
+  title: string;
+  description: string;
+  currentLowestBid: number;
+  startTime: Timestamp;
+  endTime: Timestamp;
+  imageUrl: string;
+  imageHint: string;
+}
 
 
 interface AuctionContextType {
   auctions: Auction[];
-  addAuction: (auction: Auction) => void;
-  getAuctionById: (id: string) => Auction | undefined;
+  addAuction: (auction: Omit<Auction, 'id'>) => Promise<void>;
+  getAuctionById: (id: string) => Promise<Auction | undefined>;
+  loading: boolean;
 }
 
 const AuctionContext = createContext<AuctionContextType | undefined>(undefined);
 
 export const AuctionProvider = ({ children }: { children: ReactNode }) => {
-  const [auctions, setAuctions] = useState<Auction[]>(mockAuctions);
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addAuction = (auction: Auction) => {
-    setAuctions(prevAuctions => [auction, ...prevAuctions]);
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      setLoading(true);
+      const querySnapshot = await getDocs(collection(db, "auctions"));
+      const auctionsData = querySnapshot.docs.map(doc => {
+        const data = doc.data() as AuctionData;
+        return {
+          id: doc.id,
+          ...data,
+          startTime: data.startTime.toDate(),
+          endTime: data.endTime.toDate(),
+        }
+      });
+      setAuctions(auctionsData);
+      setLoading(false);
+    };
+
+    fetchAuctions();
+  }, []);
+
+  const addAuction = async (auction: Omit<Auction, 'id'>) => {
+    const auctionData = {
+        ...auction,
+        startTime: Timestamp.fromDate(auction.startTime),
+        endTime: Timestamp.fromDate(auction.endTime),
+    }
+    const docRef = await addDoc(collection(db, "auctions"), auctionData);
+    setAuctions(prevAuctions => [{...auction, id: docRef.id}, ...prevAuctions]);
   };
 
-  const getAuctionById = (id: string) => {
-    return auctions.find(auction => auction.id === id);
+  const getAuctionById = async (id: string) => {
+    setLoading(true);
+    const docRef = doc(db, "auctions", id);
+    const docSnap = await getDoc(docRef);
+    setLoading(false);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data() as AuctionData;
+      return {
+          id: docSnap.id,
+          ...data,
+          startTime: data.startTime.toDate(),
+          endTime: data.endTime.toDate(),
+      };
+    } else {
+      return undefined;
+    }
   };
 
   return (
-    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById }}>
+    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, loading }}>
       {children}
     </AuctionContext.Provider>
   );

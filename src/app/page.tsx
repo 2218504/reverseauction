@@ -3,14 +3,28 @@
 import { AuctionCard } from "@/components/auction-card";
 import { useAuctions } from "@/context/AuctionContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
-  const { auctions } = useAuctions();
+  const { auctions, loading } = useAuctions();
   const now = new Date();
 
   const liveAuctions = auctions.filter(a => new Date(a.startTime) <= now && new Date(a.endTime) > now);
   const startingSoonAuctions = auctions.filter(a => new Date(a.startTime) > now);
   const completedAuctions = auctions.filter(a => new Date(a.endTime) <= now);
+
+  const renderSkeletons = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="space-y-4">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <div>
@@ -22,37 +36,43 @@ export default function Home() {
           <TabsTrigger value="completed">Completed</TabsTrigger>
         </TabsList>
         <TabsContent value="live" className="mt-8">
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {liveAuctions.length > 0 ? (
-              liveAuctions.map((auction) => (
-                <AuctionCard key={auction.id} auction={auction} />
-              ))
-            ) : (
-              <p className="text-center col-span-full text-muted-foreground">No live auctions at the moment.</p>
-            )}
-          </div>
+           {loading ? renderSkeletons() : (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {liveAuctions.length > 0 ? (
+                liveAuctions.map((auction) => (
+                  <AuctionCard key={auction.id} auction={auction} />
+                ))
+              ) : (
+                <p className="text-center col-span-full text-muted-foreground">No live auctions at the moment.</p>
+              )}
+            </div>
+           )}
         </TabsContent>
         <TabsContent value="starting-soon" className="mt-8">
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {startingSoonAuctions.length > 0 ? (
-              startingSoonAuctions.map((auction) => (
-                <AuctionCard key={auction.id} auction={auction} />
-              ))
-            ) : (
-               <p className="text-center col-span-full text-muted-foreground">No auctions are starting soon.</p>
-            )}
-          </div>
+           {loading ? renderSkeletons() : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {startingSoonAuctions.length > 0 ? (
+                startingSoonAuctions.map((auction) => (
+                  <AuctionCard key={auction.id} auction={auction} />
+                ))
+              ) : (
+                 <p className="text-center col-span-full text-muted-foreground">No auctions are starting soon.</p>
+              )}
+            </div>
+           )}
         </TabsContent>
         <TabsContent value="completed" className="mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {completedAuctions.length > 0 ? (
-              completedAuctions.map((auction) => (
-                <AuctionCard key={auction.id} auction={auction} />
-              ))
-            ) : (
-              <p className="text-center col-span-full text-muted-foreground">No completed auctions.</p>
-            )}
-          </div>
+          {loading ? renderSkeletons() : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {completedAuctions.length > 0 ? (
+                completedAuctions.map((auction) => (
+                  <AuctionCard key={auction.id} auction={auction} />
+                ))
+              ) : (
+                <p className="text-center col-span-full text-muted-foreground">No completed auctions.</p>
+              )}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

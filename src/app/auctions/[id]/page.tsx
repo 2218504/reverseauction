@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, DollarSign, Gavel, History, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { useAuctions } from "@/context/AuctionContext";
+import { useAuctions, Auction } from "@/context/AuctionContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const mockBids = [
@@ -29,7 +29,7 @@ type Bid = {
 export default function AuctionPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { getAuctionById } = useAuctions();
-  const auction = getAuctionById(params.id);
+  const [auction, setAuction] = useState<Auction | undefined | null>(null);
 
   const [isFinished, setIsFinished] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
@@ -37,16 +37,27 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
   const [currentLowestBid, setCurrentLowestBid] = useState<number | null>(null);
 
   useEffect(() => {
+    const fetchAuction = async () => {
+        const fetchedAuction = await getAuctionById(params.id);
+        setAuction(fetchedAuction);
+    }
+    fetchAuction();
+  }, [getAuctionById, params.id]);
+
+  useEffect(() => {
     if (auction) {
       // In a real app, bids would be fetched for the auction
-      const initialBids = mockBids.filter(b => b.amount >= auction.currentLowestBid).sort((a,b) => a.time.getTime() - b.time.getTime());
+      const initialBids = mockBids.filter(b => auction.currentLowestBid && b.amount >= auction.currentLowestBid).sort((a,b) => a.time.getTime() - b.time.getTime());
       setBids(initialBids);
       setCurrentLowestBid(auction.currentLowestBid);
+      if (auction.endTime) {
+        setIsFinished(new Date() > new Date(auction.endTime));
+      }
     }
   }, [auction]);
 
 
-  if (!auction) {
+  if (auction === null) {
     return (
         <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-8">
@@ -80,6 +91,10 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
             </div>
         </div>
     )
+  }
+
+  if (auction === undefined) {
+    return <div>Auction not found</div>;
   }
   
   const handleBidSubmit = (e: React.FormEvent) => {
@@ -142,6 +157,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
                             </div>
                         </li>
                     ))}
+                    {bids.length === 0 && <p className="text-center text-muted-foreground">No bids yet.</p>}
                 </ul>
             </CardContent>
         </Card>

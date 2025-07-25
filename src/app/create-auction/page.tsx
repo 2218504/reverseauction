@@ -18,11 +18,12 @@ export default function CreateAuctionPage() {
   const [startPrice, setStartPrice] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     const newAuction = {
-      id: Date.now().toString(),
       title,
       description,
       currentLowestBid: parseFloat(startPrice),
@@ -31,7 +32,8 @@ export default function CreateAuctionPage() {
       imageUrl: "https://placehold.co/600x400.png",
       imageHint: "newly created auction"
     };
-    addAuction(newAuction);
+    await addAuction(newAuction);
+    setLoading(false);
     router.push('/');
   };
 
@@ -77,7 +79,9 @@ export default function CreateAuctionPage() {
               </div>
               <p className="text-xs text-muted-foreground">If you set a key, only users with the key can view and bid.</p>
             </div>
-            <Button type="submit" className="w-full md:w-auto">Create Auction</Button>
+            <Button type="submit" className="w-full md:w-auto" disabled={loading}>
+                {loading ? 'Creating...' : 'Create Auction'}
+            </Button>
           </form>
         </CardContent>
       </Card>
