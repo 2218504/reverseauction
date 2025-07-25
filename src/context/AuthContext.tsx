@@ -74,8 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: role
     });
     
-    // The onAuthStateChanged listener will handle setting the user and admin state.
-    // This avoids race conditions.
     if(role === 'admin') {
       setIsAdmin(true);
     }
@@ -99,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
