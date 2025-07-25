@@ -1,7 +1,7 @@
 
 "use client";
 import Image from "next/image";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, DollarSign, Gavel, History, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { useAuctions, Auction, AuctionStatus, Bid } from "@/context/AuctionContext";
+import { useAuctions, Auction, Bid } from "@/context/AuctionContext";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 
-export default function AuctionPage({ params }: { params: { id: string } }) {
-  const { id: auctionId } = params;
+export default function AuctionPage({ params: { id: auctionId } }: { params: { id: string } }) {
   const { toast } = useToast();
   const { getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction } = useAuctions();
   const { user, loading: authLoading } = useAuth();
@@ -111,11 +110,11 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
     }
     
     // Reverse auction logic: bid must be lower than the current lowest bid
-    if (newBidAmount >= auction.currentLowestBid) {
+    if (bids.length > 0 && newBidAmount >= bids[0].amount) {
       toast({
         variant: "destructive",
         title: "Invalid Bid",
-        description: `Your bid must be lower than the current lowest bid of $${auction.currentLowestBid.toLocaleString()}.`,
+        description: `Your bid must be lower than the current lowest bid of $${bids[0].amount.toLocaleString()}.`,
       });
       setIsSubmitting(false);
       return;
@@ -126,6 +125,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
         userId: user.uid,
         user: user.displayName || "Anonymous",
         amount: newBidAmount,
+        time: new Date(),
       };
 
       await submitBid(auction.id, bidData, auction.currentLowestBid);
@@ -134,9 +134,6 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
         title: "Bid Placed!",
         description: `Your bid of $${newBidAmount.toLocaleString()} has been successfully submitted.`,
       });
-
-      // After successful submission, we let the real-time listener update the state.
-      // We don't need to manually clear the input, it will be updated by the useEffect for userCurrentBid
       
     } catch (error: any) {
         console.error("Failed to submit bid:", error);
@@ -256,7 +253,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
           <CardContent className="space-y-4">
             <div className="text-center bg-primary/10 p-4 rounded-lg">
                 <p className="text-sm text-primary font-medium">Current Lowest Bid</p>
-                <p className="text-4xl font-bold text-primary">${auction.currentLowestBid.toLocaleString()}</p>
+                <p className="text-4xl font-bold text-primary">${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}</p>
             </div>
               
             <div className="text-center border p-4 rounded-lg">
@@ -308,7 +305,7 @@ export default function AuctionPage({ params }: { params: { id: string } }) {
                                     id="bid" 
                                     type="number" 
                                     step="any"
-                                    placeholder={userCurrentBid ? `Lower than $${userCurrentBid.amount.toLocaleString()}` : `Lower than $${auction.currentLowestBid.toLocaleString()}`}
+                                    placeholder={userCurrentBid ? `Lower than $${userCurrentBid.amount.toLocaleString()}` : `Lower than $${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}`}
                                     className="pl-10 text-lg h-12"
                                     value={bidAmount}
                                     onChange={(e) => setBidAmount(e.target.value)}
