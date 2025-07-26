@@ -25,7 +25,7 @@ export function AuctionCard({ auction, onDelete }: AuctionCardProps) {
   };
 
   return (
-    <Card className={`flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isCompleted ? 'opacity-70 bg-secondary/50' : ''}`}>
+    <Card className={`flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isCompleted ? 'bg-secondary/50' : ''}`}>
        {isCompleted && (
         <div className="relative p-2 text-center bg-gray-200">
           <span className="text-gray-600 font-bold text-sm">Completed</span>
@@ -55,7 +55,7 @@ export function AuctionCard({ auction, onDelete }: AuctionCardProps) {
       )}
 
       <CardHeader>
-        <CardTitle className="font-headline text-xl mb-2 flex items-center gap-2">
+        <CardTitle className={`font-headline text-xl mb-2 flex items-center gap-2 ${isCompleted ? 'text-gray-800' : ''}`}>
           {auction.secretKey && <Lock className="h-4 w-4 text-muted-foreground" title="Private Auction" />}
           {auction.title}
         </CardTitle>
