@@ -2,6 +2,7 @@
 "use client";
 import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-export default function AuctionPage({ params: { id: auctionId } }: { params: { id: string } }) {
+export default function AuctionPage() {
+  const params = useParams();
+  const auctionId = params.id as string;
   const { toast } = useToast();
   const { getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, listenToAuction } = useAuctions();
   const { user, isAdmin, loading: authLoading } = useAuth();
