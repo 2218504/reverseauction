@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc, writeBatch, query, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc, writeBatch, query, onSnapshot, orderBy, where, getDocFromCache } from "firebase/firestore";
 import { db } from '@/lib/firebase/firebase';
 import { useAuth } from './AuthContext';
 
@@ -18,6 +18,7 @@ export interface Auction {
   imageUrl: string;
   imageHint: string;
   status: AuctionStatus;
+  winnerId?: string;
 }
 
 export interface AuctionData {
@@ -29,6 +30,7 @@ export interface AuctionData {
   imageUrl: string;
   imageHint: string;
   status: AuctionStatus;
+  winnerId?: string;
 }
 
 export interface Bid {
@@ -71,37 +73,37 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     return 'live';
   }
 
-  const fetchAuctions = useCallback(async () => {
+  useEffect(() => {
     setLoading(true);
-    const querySnapshot = await getDocs(collection(db, "auctions"));
-    const auctionsData = querySnapshot.docs.map(doc => {
-      const data = doc.data() as AuctionData;
-      const startTime = data.startTime.toDate();
-      const endTime = data.endTime.toDate();
-      const status = getStatus(startTime, endTime);
-      
-      // If status changed, update it in DB
-      if (status !== data.status) {
-          const auctionRef = doc(db, 'auctions', doc.id);
-          updateDoc(auctionRef, { status });
-      }
+    const q = query(collection(db, "auctions"), orderBy("startTime", "desc"));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const auctionsData = querySnapshot.docs.map(doc => {
+            const data = doc.data() as AuctionData;
+            const startTime = data.startTime.toDate();
+            const endTime = data.endTime.toDate();
+            const status = getStatus(startTime, endTime);
+            
+            if (status !== data.status && data.status !== 'completed') {
+                const auctionRef = doc(db, 'auctions', doc.id);
+                updateDoc(auctionRef, { status });
+            }
 
-      return {
-        id: doc.id,
-        ...data,
-        startTime,
-        endTime,
-        status,
-      }
+            return {
+                id: doc.id,
+                ...data,
+                startTime,
+                endTime,
+                status,
+            }
+        });
+        setAuctions(auctionsData);
+        setLoading(false);
     });
-    setAuctions(auctionsData);
-    setLoading(false);
+
+    return () => unsubscribe();
   }, []);
 
-
-  useEffect(() => {
-    fetchAuctions();
-  }, [fetchAuctions]);
 
   const addAuction = async (auction: Omit<Auction, 'id' | 'status'>) => {
     const status = getStatus(auction.startTime, auction.endTime);
@@ -112,14 +114,36 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
         endTime: Timestamp.fromDate(auction.endTime),
         status,
     }
-    const docRef = await addDoc(collection(db, "auctions"), auctionData);
-    setAuctions(prevAuctions => [{...auction, id: docRef.id, status}, ...prevAuctions]);
+    await addDoc(collection(db, "auctions"), auctionData);
   };
   
   const updateAuctionStatus = async (id: string, status: AuctionStatus) => {
       const auctionRef = doc(db, 'auctions', id);
-      await updateDoc(auctionRef, { status });
-      setAuctions(prev => prev.map(a => a.id === id ? {...a, status} : a));
+      const updateData: {status: AuctionStatus, winnerId?: string} = { status };
+
+      if (status === 'completed') {
+        const bidsQuery = query(collection(db, "auctions", id, "bids"), orderBy("amount", "asc"), where("amount", ">", 0));
+        const bidsSnapshot = await getDocs(bidsQuery);
+        if (!bidsSnapshot.empty) {
+            const winningBid = bidsSnapshot.docs[0].data() as BidData;
+            updateData.winnerId = winningBid.userId;
+
+            // Add auction to user's wonAuctions
+            const userRef = doc(db, 'users', winningBid.userId);
+            const userSnap = await getDoc(userRef);
+            if(userSnap.exists()){
+                const userData = userSnap.data();
+                const wonAuctions = userData.wonAuctions || [];
+                if(!wonAuctions.includes(id)){
+                    await updateDoc(userRef, {
+                        wonAuctions: [...wonAuctions, id]
+                    });
+                }
+            }
+        }
+      }
+      
+      await updateDoc(auctionRef, updateData);
   }
 
   const getAuctionById = async (id: string) => {
@@ -134,7 +158,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
       const endTime = data.endTime.toDate();
       const status = getStatus(startTime, endTime);
       
-      if (status !== data.status) {
+      if (status !== data.status && data.status !== 'completed') {
           updateDoc(docRef, { status });
       }
 
@@ -160,20 +184,13 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
           time: Timestamp.fromDate(new Date()),
       }
 
-      // Add bid to subcollection
       const newBidRef = doc(collection(db, "auctions", auctionId, "bids"));
       batch.set(newBidRef, bidPayload);
 
-      // Update currentLowestBid on auction document if this bid is lower
-      if (bidData.amount < currentLowestBid) {
-          const auctionRef = doc(db, "auctions", auctionId);
-          batch.update(auctionRef, { currentLowestBid: bidData.amount });
-      }
+      const auctionRef = doc(db, "auctions", auctionId);
+      batch.update(auctionRef, { currentLowestBid: bidData.amount });
       
       await batch.commit();
-
-      // Update local state for immediate UI feedback
-      setAuctions(prev => prev.map(a => a.id === auctionId ? { ...a, currentLowestBid: Math.min(a.currentLowestBid, bidData.amount)} : a));
   }
 
   const getBidsForAuction = (auctionId: string, callback: (bids: Bid[]) => void) => {
@@ -191,7 +208,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
         callback(bids);
     });
 
-    return unsubscribe; // Return the unsubscribe function to be called on cleanup
+    return unsubscribe;
   };
 
 

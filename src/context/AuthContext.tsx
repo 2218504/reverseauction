@@ -1,11 +1,10 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { auth, db } from '@/lib/firebase/firebase';
 import { 
   onAuthStateChanged, 
-  User, 
+  User as FirebaseUser, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
@@ -14,8 +13,13 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 
+// Custom User interface that extends Firebase User with role
+interface CustomUser extends FirebaseUser {
+  role: string;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: CustomUser | null;
   loading: boolean;
   isAdmin: boolean;
   login: (email: string, pass: string) => Promise<void>;
@@ -28,7 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ADMIN_EMAIL = 'admin@reverseauctionpro.com';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
@@ -38,11 +42,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setLoading(true);
       if (currentUser) {
-        setUser(currentUser);
+        // Fetch user role from Firestore
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
-        const userIsAdmin = userDoc.exists() && userDoc.data().role === 'admin';
-        setIsAdmin(userIsAdmin);
+        
+        let userRole = 'user'; // default role
+        if (userDoc.exists()) {
+          userRole = userDoc.data().role || 'user';
+        }
+        
+        // Create custom user object with role
+        const customUser: CustomUser = {
+          ...currentUser,
+          role: userRole
+        };
+        
+        setUser(customUser);
+        setIsAdmin(userRole === 'admin');
 
         if (pathname === '/login' || pathname === '/register') {
           router.push('/auctions');
