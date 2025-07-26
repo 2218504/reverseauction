@@ -1,4 +1,3 @@
-
 "use client";
 import { AuctionCard } from "@/components/auction-card";
 import { useAuctions } from "@/context/AuctionContext";
@@ -21,16 +20,30 @@ export default function AuctionsPage() {
     }
   }, [user, loading, router]);
 
-
   if (loading) {
      return (
         <div>
           <h1 className="text-4xl font-headline font-bold mb-8 text-center">Auctions</h1>
            <Tabs defaultValue="live" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto">
-              <TabsTrigger value="live">Live</TabsTrigger>
-              <TabsTrigger value="starting-soon">Starting Soon</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto bg-transparent p-1 h-auto">
+              <TabsTrigger 
+                value="live"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:font-medium bg-transparent text-gray-600 hover:bg-gray-100 transition-all duration-200 py-3 px-6 rounded-md"
+              >
+                Live
+              </TabsTrigger>
+              <TabsTrigger 
+                value="starting-soon"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:font-medium bg-transparent text-gray-600 hover:bg-gray-100 transition-all duration-200 py-3 px-6 rounded-md"
+              >
+                Starting Soon
+              </TabsTrigger>
+              <TabsTrigger 
+                value="completed"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:font-medium bg-transparent text-gray-600 hover:bg-gray-100 transition-all duration-200 py-3 px-6 rounded-md"
+              >
+                Completed
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="live" className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -62,14 +75,23 @@ export default function AuctionsPage() {
       <h1 className="text-4xl font-headline font-bold mb-8 text-center">Auctions</h1>
       
       <Tabs defaultValue="live" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto">
-          <TabsTrigger value="live">
+        <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto bg-transparent p-1 h-auto">
+          <TabsTrigger 
+            value="live"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:font-medium bg-transparent text-gray-600 hover:bg-gray-100 transition-all duration-200 py-3 px-6 rounded-md"
+          >
             Live ({liveAuctions.length})
           </TabsTrigger>
-          <TabsTrigger value="starting-soon">
+          <TabsTrigger 
+            value="starting-soon"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:font-medium bg-transparent text-gray-600 hover:bg-gray-100 transition-all duration-200 py-3 px-6 rounded-md"
+          >
             Starting Soon ({startingSoonAuctions.length})
           </TabsTrigger>
-          <TabsTrigger value="completed">
+          <TabsTrigger 
+            value="completed"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:font-medium bg-transparent text-gray-600 hover:bg-gray-100 transition-all duration-200 py-3 px-6 rounded-md"
+          >
             Completed ({completedAuctions.length})
           </TabsTrigger>
         </TabsList>
