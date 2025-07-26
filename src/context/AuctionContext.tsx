@@ -120,8 +120,8 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
                 startTime,
                 endTime,
                 status,
-                createdAt: data.createdAt.toDate(),
-                updatedAt: data.updatedAt.toDate(),
+                createdAt: data.createdAt?.toDate(),
+                updatedAt: data.updatedAt?.toDate() || data.createdAt?.toDate(),
             }
         });
         setAuctions(auctionsData);
@@ -185,7 +185,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
       const startTime = data.startTime.toDate();
       const endTime = data.endTime.toDate();
       const createdAt = data.createdAt.toDate();
-      const updatedAt = data.updatedAt.toDate();
+      const updatedAt = data.updatedAt?.toDate() || data.createdAt?.toDate();
       const status = getStatus(startTime, endTime);
       
       if (status !== data.status && data.status !== 'completed') {
@@ -214,7 +214,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
         const startTime = data.startTime.toDate();
         const endTime = data.endTime.toDate();
         const createdAt = data.createdAt.toDate();
-        const updatedAt = data.updatedAt.toDate();
+        const updatedAt = data.updatedAt?.toDate() || data.createdAt?.toDate();
         const status = getStatus(startTime, endTime);
 
         if (status !== data.status && data.status !== 'completed') {
@@ -336,7 +336,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
         });
     }
 
-    return allReviews.sort((a, b) => b.time.getTime() - a.time.getTime());
+    return allReviews.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
   }, []);
 
 
