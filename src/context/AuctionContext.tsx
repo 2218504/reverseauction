@@ -89,7 +89,7 @@ const AuctionContext = createContext<AuctionContextType | undefined>(undefined);
 const getStatus = (startTime: Date, endTime: Date): AuctionStatus => {
   const now = new Date();
   if (now < startTime) return 'starting-soon';
-  if (now > endTime) return 'completed';
+  if (now >= endTime) return 'completed';
   return 'live';
 }
 
@@ -135,10 +135,9 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
                 const newStatus = getStatus(auction.startTime, auction.endTime);
                 if (auction.status !== newStatus) {
                     hasChanged = true;
-                    if(newStatus === 'completed' && auction.status !== 'completed') {
-                      // Update in DB only when it moves to completed
-                      updateAuctionStatus(auction.id, 'completed');
-                    }
+                    // Note: We don't update the DB here anymore to avoid race conditions.
+                    // The primary status update should happen on the action that triggers it,
+                    // or a dedicated backend process. This client-side update is for UI reactivity.
                     return { ...auction, status: newStatus };
                 }
                 return auction;
