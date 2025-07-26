@@ -62,7 +62,7 @@ export default function AuctionsPage() {
       <h1 className="text-4xl font-headline font-bold mb-8 text-center">Auctions</h1>
       
       <Tabs defaultValue="live" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto">
           <TabsTrigger value="live">
             Live ({liveAuctions.length})
           </TabsTrigger>
