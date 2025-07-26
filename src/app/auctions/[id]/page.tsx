@@ -392,3 +392,5 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
 }
 
     
+
+    
