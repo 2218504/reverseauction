@@ -201,7 +201,6 @@ export default function AuctionPage() {
               {auction.secretKey && <Lock className="h-8 w-8 text-muted-foreground" title="Private Auction" />}
               <h1 className="text-4xl font-headline font-bold">{auction.title}</h1>
             </div>
-            <CardDescription>Auction ID: {auction.id}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">{auction.description}</p>
@@ -239,7 +238,7 @@ export default function AuctionPage() {
             {isAdmin && (
                 <div className="text-center bg-primary/10 p-4 rounded-lg">
                     <p className="text-sm text-primary font-medium">Current Lowest Bid</p>
-                    <p className="text-4xl font-bold text-primary">₹{(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-primary">₹{(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}</p>
                 </div>
             )}
               
@@ -247,7 +246,6 @@ export default function AuctionPage() {
                 <p className="text-sm text-muted-foreground mb-1">
                   {auction.status === 'live' && 'Time Remaining'}
                   {auction.status === 'starting-soon' && 'Time Until Start'}
-                  {auction.status === 'completed' && 'Auction Ended'}
                 </p>
                 <div className="text-xl font-bold"><CountdownTimer startTime={auction.startTime} endTime={auction.endTime} onExpire={handleExpire} /></div>
             </div>
@@ -391,3 +389,5 @@ const AuctionPageSkeleton = () => (
         </div>
     </div>
 );
+
+    
