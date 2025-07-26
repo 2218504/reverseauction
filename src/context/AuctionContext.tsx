@@ -126,30 +126,6 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  // Effect to update statuses in real-time on the client
-  useEffect(() => {
-    const interval = setInterval(() => {
-        setAuctions(prevAuctions => {
-            let hasChanged = false;
-            const updatedAuctions = prevAuctions.map(auction => {
-                const newStatus = getStatus(auction.startTime, auction.endTime);
-                if (auction.status !== newStatus) {
-                    hasChanged = true;
-                    // Note: We don't update the DB here anymore to avoid race conditions.
-                    // The primary status update should happen on the action that triggers it,
-                    // or a dedicated backend process. This client-side update is for UI reactivity.
-                    return { ...auction, status: newStatus };
-                }
-                return auction;
-            });
-
-            return hasChanged ? updatedAuctions : prevAuctions;
-        });
-    }, 1000); // Check every second
-
-    return () => clearInterval(interval);
-  }, []);
-
   const addAuction = async (auction: Omit<Auction, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     const status = getStatus(auction.startTime, auction.endTime);
     
