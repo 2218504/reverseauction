@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -14,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Trophy } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/firebase';
+import { Button } from '@/components/ui/button';
 
 interface ProfileUser {
     uid: string;
@@ -195,5 +195,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    
