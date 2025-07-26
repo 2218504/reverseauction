@@ -1,6 +1,5 @@
 
 "use client";
-import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -175,7 +174,7 @@ export default function AuctionPage() {
   if (auction.secretKey && !isAuthorized && !isAdmin) {
     return (
         <Card className="max-w-md mx-auto"><CardHeader className="text-center">
-            <Lock className="mx-auto h-12 w-12 mb-4 text-primary" />
+            <Lock className="mx-auto h-12 w-12 text-primary" />
             <CardTitle className="font-headline text-2xl">Private Auction</CardTitle>
             <CardDescription>This auction is private. Please enter the secret key to view it.</CardDescription>
         </CardHeader><CardContent>
@@ -205,9 +204,6 @@ export default function AuctionPage() {
             <CardDescription>Auction ID: {auction.id}</CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="relative h-96 w-full rounded-lg overflow-hidden mb-6">
-                <Image src={auction.imageUrl} alt={auction.title} fill objectFit="cover" data-ai-hint={auction.imageHint} />
-            </div>
             <p className="text-muted-foreground">{auction.description}</p>
           </CardContent>
         </Card>
@@ -384,8 +380,7 @@ const AuctionPageSkeleton = () => (
     <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">
             <Card><CardHeader><Skeleton className="h-10 w-3/4" /><Skeleton className="h-4 w-1/4" /></CardHeader><CardContent>
-                <Skeleton className="h-96 w-full rounded-lg mb-6" />
-                <Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-full mt-2" /><Skeleton className="h-4 w-3/4 mt-2" />
+                <Skeleton className="h-24 w-full" />
             </CardContent></Card>
         </div>
         <div className="space-y-6 md:col-span-1">

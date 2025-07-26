@@ -11,7 +11,6 @@ import { KeyRound, Sparkles } from 'lucide-react';
 import { useAuctions } from '@/context/AuctionContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { generateAuctionImage } from '@/ai/flows/generate-auction-image-flow';
 
 export default function CreateAuctionPage() {
   const router = useRouter();
@@ -62,40 +61,12 @@ export default function CreateAuctionPage() {
     }
     setLoading(true);
     try {
-
-      let imageUrl = "https://placehold.co/600x400.png";
-      let imageHint = "placeholder";
-
-      try {
-        const result = await generateAuctionImage({ title, description });
-        if(result.imageUrl) {
-          imageUrl = result.imageUrl;
-          imageHint = title;
-        } else {
-           toast({
-            variant: "default",
-            title: "AI Image Generation Failed",
-            description: "Could not generate an image, using a placeholder.",
-          });
-        }
-      } catch (genError) {
-         console.error("AI image generation failed:", genError);
-         toast({
-            variant: "default",
-            title: "AI Image Generation Failed",
-            description: "An error occurred during image generation, using a placeholder.",
-          });
-      }
-
-
       const newAuction = {
         title,
         description,
         currentLowestBid: parseFloat(startPrice),
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        imageUrl,
-        imageHint,
         secretKey: secretKey || null,
       };
       await addAuction(newAuction);
@@ -125,7 +96,7 @@ export default function CreateAuctionPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl font-headline flex items-center gap-2">Create New Auction <Sparkles className="text-primary h-6 w-6" /></CardTitle>
-          <CardDescription>Fill out the details below. An AI-generated image will be created for your auction based on the title and description.</CardDescription>
+          <CardDescription>Fill out the details below to create a new auction.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -171,5 +142,3 @@ export default function CreateAuctionPage() {
     </div>
   );
 }
-
-    

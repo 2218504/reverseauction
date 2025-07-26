@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc, writeBatch, query, onSnapshot, orderBy, where, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc, writeBatch, query, onSnapshot, orderBy, where, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from '@/lib/firebase/firebase';
 import { useAuth } from './AuthContext';
 
@@ -25,13 +25,13 @@ export interface Auction {
   currentLowestBid: number;
   startTime: Date;
   endTime: Date;
-  imageUrl: string;
-  imageHint: string;
   status: AuctionStatus;
   winnerId?: string;
   secretKey?: string | null;
   winnerReview?: Review;
   adminReview?: Review;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AuctionData {
@@ -40,13 +40,13 @@ export interface AuctionData {
   currentLowestBid: number;
   startTime: Timestamp;
   endTime: Timestamp;
-  imageUrl: string;
-  imageHint: string;
   status: AuctionStatus;
   winnerId?: string;
   secretKey?: string | null;
   winnerReview?: Review;
   adminReview?: Review;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface Bid {
@@ -71,7 +71,7 @@ export interface BidData {
 
 interface AuctionContextType {
   auctions: Auction[];
-  addAuction: (auction: Omit<Auction, 'id' | 'status'>) => Promise<void>;
+  addAuction: (auction: Omit<Auction, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   getAuctionById: (id: string) => Promise<Auction | undefined>;
   updateAuctionStatus: (id: string, status: AuctionStatus) => Promise<void>;
   submitBid: (auctionId: string, bidData: Omit<Bid, 'id' | 'time' | 'auctionId' | 'auctionTitle' | 'auctionId' | 'auctionTitle'>, currentLowestBid: number) => Promise<void>;
@@ -111,7 +111,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
             
             if (status !== data.status && data.status !== 'completed') {
                 const auctionRef = doc(db, 'auctions', docSnapshot.id);
-                updateDoc(auctionRef, { status });
+                updateDoc(auctionRef, { status, updatedAt: serverTimestamp() });
             }
 
             return {
@@ -120,6 +120,8 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
                 startTime,
                 endTime,
                 status,
+                createdAt: data.createdAt.toDate(),
+                updatedAt: data.updatedAt.toDate(),
             }
         });
         setAuctions(auctionsData);
@@ -130,7 +132,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
 
-  const addAuction = async (auction: Omit<Auction, 'id' | 'status'>) => {
+  const addAuction = async (auction: Omit<Auction, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
     const status = getStatus(auction.startTime, auction.endTime);
     
     const auctionData = {
@@ -138,13 +140,15 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
         startTime: Timestamp.fromDate(auction.startTime),
         endTime: Timestamp.fromDate(auction.endTime),
         status,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
     }
     await addDoc(collection(db, "auctions"), auctionData);
   };
   
   const updateAuctionStatus = async (id: string, status: AuctionStatus) => {
       const auctionRef = doc(db, 'auctions', id);
-      const updateData: {status: AuctionStatus, winnerId?: string} = { status };
+      const updateData: {status: AuctionStatus, winnerId?: string, updatedAt: any} = { status, updatedAt: serverTimestamp() };
 
       if (status === 'completed') {
         const bidsQuery = query(collection(db, "auctions", id, "bids"), orderBy("amount", "asc"), where("amount", ">", 0));
@@ -180,10 +184,12 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
       const data = docSnap.data() as AuctionData;
       const startTime = data.startTime.toDate();
       const endTime = data.endTime.toDate();
+      const createdAt = data.createdAt.toDate();
+      const updatedAt = data.updatedAt.toDate();
       const status = getStatus(startTime, endTime);
       
       if (status !== data.status && data.status !== 'completed') {
-          updateDoc(docRef, { status });
+          updateDoc(docRef, { status, updatedAt: serverTimestamp() });
       }
 
       return {
@@ -192,6 +198,8 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
           startTime,
           endTime,
           status,
+          createdAt,
+          updatedAt,
       };
     } else {
       return undefined;
@@ -205,10 +213,12 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
         const data = docSnap.data() as AuctionData;
         const startTime = data.startTime.toDate();
         const endTime = data.endTime.toDate();
+        const createdAt = data.createdAt.toDate();
+        const updatedAt = data.updatedAt.toDate();
         const status = getStatus(startTime, endTime);
 
         if (status !== data.status && data.status !== 'completed') {
-          updateDoc(docRef, { status });
+          updateDoc(docRef, { status, updatedAt: serverTimestamp() });
         }
 
         callback({
@@ -217,6 +227,8 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
           startTime,
           endTime,
           status,
+          createdAt,
+          updatedAt,
         });
       } else {
         callback(null); // Document does not exist or was deleted
@@ -256,7 +268,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const auctionRef = doc(db, "auctions", auctionId);
-    batch.update(auctionRef, { currentLowestBid: bidData.amount });
+    batch.update(auctionRef, { currentLowestBid: bidData.amount, updatedAt: serverTimestamp() });
     
     await batch.commit();
   };
@@ -304,7 +316,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
   
   const submitReview = async (auctionId: string, reviewData: { [key: string]: Review }) => {
     const auctionRef = doc(db, 'auctions', auctionId);
-    await updateDoc(auctionRef, reviewData);
+    await updateDoc(auctionRef, { ...reviewData, updatedAt: serverTimestamp() });
   };
 
   const getReviewsForUser = useCallback(async (userId: string): Promise<Review[]> => {
