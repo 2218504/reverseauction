@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -105,11 +106,12 @@ export default function ProfilePage() {
         return <div>User not found.</div>;
     }
 
-    const uniqueBids = userBids.filter((bid, index, self) => 
-        index === self.findIndex((b) => (
-            b.auctionId === bid.auctionId
-        ))
-    );
+    const uniqueBids = userBids
+        .filter((bid, index, self) => 
+            index === self.findIndex((b) => b.auctionId === bid.auctionId)
+        )
+        .filter(bid => auctions.some(a => a.id === bid.auctionId)); // Only show bids for existing auctions
+
 
     return (
         <div className="space-y-8">
