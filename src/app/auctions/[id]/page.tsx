@@ -1,14 +1,14 @@
 
 "use client";
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import CountdownTimer from "@/components/countdown-timer";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Gavel, History, Trash2, User, Users } from "lucide-react";
+import { Bell, Gavel, History, KeyRound, Lock, Trash2, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { useAuctions, Auction, Bid } from "@/context/AuctionContext";
@@ -27,7 +27,11 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
   const [bidAmount, setBidAmount] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [secretKey, setSecretKey] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
   
+  const previousBidsRef = useRef<Bid[]>([]);
+
   // Real-time listener for auction document
   useEffect(() => {
     if (!auctionId) return;
@@ -41,6 +45,10 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
         } else {
           setIsFinished(new Date() > new Date(fetchedAuction.endTime));
         }
+        // If auction is not private, user is authorized. Otherwise, wait for key check.
+        if (!fetchedAuction.secretKey) {
+            setIsAuthorized(true);
+        }
       } else {
         setAuction(null); // Auction was deleted or doesn't exist
       }
@@ -49,17 +57,34 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
 
     return () => unsubscribe(); // Cleanup listener
   }, [auctionId, listenToAuction]);
-
-  // Set up real-time listener for bids
+  
+  // Set up real-time listener for bids and handle notifications
   useEffect(() => {
     if (!auctionId) return;
 
     const unsubscribe = getBidsForAuction(auctionId, (newBids) => {
-      setBids(newBids);
+        setBids(newBids);
+        
+        // Notification logic
+        const previousBids = previousBidsRef.current;
+        if (user && newBids.length > 0 && previousBids.length > 0) {
+            const myPreviousHighestBid = previousBids.find(b => b.userId === user.uid);
+            const currentLowestBidder = newBids[0];
+            
+            // If I was the lowest bidder before, but now someone else is
+            if (myPreviousHighestBid && myPreviousHighestBid.id === previousBids[0]?.id && currentLowestBidder.userId !== user.uid) {
+                toast({
+                    title: "You've been outbid!",
+                    description: `The new lowest bid is ₹${currentLowestBidder.amount.toLocaleString()}. Place a new bid to win!`,
+                });
+            }
+        }
+        
+        previousBidsRef.current = newBids;
     });
 
     return () => unsubscribe(); // Cleanup listener on component unmount
-  }, [auctionId, getBidsForAuction]);
+  }, [auctionId, getBidsForAuction, user, toast]);
 
   const handleExpire = () => {
     if (auction && auction.status !== 'completed') {
@@ -138,6 +163,31 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
       setIsSubmitting(false);
     }
   };
+
+  const handleKeySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (auction?.secretKey === secretKey) {
+        setIsAuthorized(true);
+        sessionStorage.setItem(`auction_key_${auctionId}`, secretKey);
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Invalid Secret Key',
+            description: 'The key you entered is incorrect.',
+        });
+    }
+  };
+
+   useEffect(() => {
+    if (auction?.secretKey) {
+        const storedKey = sessionStorage.getItem(`auction_key_${auctionId}`);
+        if (storedKey === auction.secretKey) {
+            setIsAuthorized(true);
+        }
+    } else if (auction) {
+        setIsAuthorized(true);
+    }
+  }, [auction, auctionId]);
   
   if (pageLoading || authLoading) {
     return (
@@ -190,13 +240,48 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
   if (!auction) {
     return <Card><CardHeader><CardTitle>Auction Not Found</CardTitle><CardDescription>The auction you are looking for does not exist or may have been deleted.</CardDescription></CardHeader></Card>;
   }
+
+  if (auction.secretKey && !isAuthorized && !isAdmin) {
+    return (
+        <Card className="max-w-md mx-auto">
+            <CardHeader className="text-center">
+                <Lock className="mx-auto h-12 w-12 mb-4 text-primary" />
+                <CardTitle className="font-headline text-2xl">Private Auction</CardTitle>
+                <CardDescription>This auction is private. Please enter the secret key to view it.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleKeySubmit} className="space-y-4">
+                    <div>
+                        <Label htmlFor="secretKey" className="sr-only">Secret Key</Label>
+                        <div className="relative">
+                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input
+                                id="secretKey"
+                                type="password"
+                                placeholder="Enter secret key"
+                                className="pl-10"
+                                value={secretKey}
+                                onChange={(e) => setSecretKey(e.target.value)}
+                                required
+                            />
+                        </div>
+                    </div>
+                    <Button type="submit" className="w-full">Unlock Auction</Button>
+                </form>
+            </CardContent>
+        </Card>
+    )
+  }
   
   return (
     <div className="grid md:grid-cols-3 gap-8">
       <div className="md:col-span-2 space-y-8">
         <Card>
           <CardHeader>
-            <h1 className="text-4xl font-headline font-bold">{auction.title}</h1>
+            <div className="flex items-center gap-2">
+              {auction.secretKey && <Lock className="h-8 w-8 text-muted-foreground" title="Private Auction" />}
+              <h1 className="text-4xl font-headline font-bold">{auction.title}</h1>
+            </div>
             <CardDescription>Auction ID: {auction.id}</CardDescription>
           </CardHeader>
           <CardContent>

@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Sparkles } from 'lucide-react';
 import { useAuctions } from '@/context/AuctionContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { generateAuctionImage } from '@/ai/flows/generate-auction-image-flow';
 
 export default function CreateAuctionPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function CreateAuctionPage() {
   const [startPrice, setStartPrice] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [secretKey, setSecretKey] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -60,14 +62,41 @@ export default function CreateAuctionPage() {
     }
     setLoading(true);
     try {
+
+      let imageUrl = "https://placehold.co/600x400.png";
+      let imageHint = "placeholder";
+
+      try {
+        const result = await generateAuctionImage({ title, description });
+        if(result.imageUrl) {
+          imageUrl = result.imageUrl;
+          imageHint = title;
+        } else {
+           toast({
+            variant: "default",
+            title: "AI Image Generation Failed",
+            description: "Could not generate an image, using a placeholder.",
+          });
+        }
+      } catch (genError) {
+         console.error("AI image generation failed:", genError);
+         toast({
+            variant: "default",
+            title: "AI Image Generation Failed",
+            description: "An error occurred during image generation, using a placeholder.",
+          });
+      }
+
+
       const newAuction = {
         title,
         description,
         currentLowestBid: parseFloat(startPrice),
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        imageUrl: "https://placehold.co/600x400.png",
-        imageHint: "newly created auction"
+        imageUrl,
+        imageHint,
+        secretKey: secretKey || null,
       };
       await addAuction(newAuction);
       toast({
@@ -95,8 +124,8 @@ export default function CreateAuctionPage() {
     <div className="max-w-3xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-headline">Create New Auction</CardTitle>
-          <CardDescription>Fill out the details below to start a new reverse auction.</CardDescription>
+          <CardTitle className="text-3xl font-headline flex items-center gap-2">Create New Auction <Sparkles className="text-primary h-6 w-6" /></CardTitle>
+          <CardDescription>Fill out the details below. An AI-generated image will be created for your auction based on the title and description.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -129,7 +158,7 @@ export default function CreateAuctionPage() {
               <Label htmlFor="secretKey">Secret Key (Optional)</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="secretKey" placeholder="A secret key to make the auction private" className="pl-10" />
+                <Input id="secretKey" placeholder="A secret key to make the auction private" className="pl-10" value={secretKey} onChange={(e) => setSecretKey(e.target.value)} />
               </div>
               <p className="text-xs text-muted-foreground">If you set a key, only users with the key can view and bid.</p>
             </div>

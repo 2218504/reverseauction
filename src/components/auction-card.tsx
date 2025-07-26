@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, ArrowRight, Trash2 } from 'lucide-react';
+import { Clock, ArrowRight, Trash2, Lock } from 'lucide-react';
 import CountdownTimer from './countdown-timer';
 import type { Auction } from '@/context/AuctionContext';
 import { useAuth } from '@/context/AuthContext';
@@ -53,7 +53,10 @@ export function AuctionCard({ auction, onDelete }: AuctionCardProps) {
       </div>
 
       <CardHeader>
-        <CardTitle className="font-headline text-xl mb-2">{auction.title}</CardTitle>
+        <CardTitle className="font-headline text-xl mb-2 flex items-center gap-2">
+          {auction.secretKey && <Lock className="h-4 w-4 text-muted-foreground" title="Private Auction" />}
+          {auction.title}
+        </CardTitle>
         <CardDescription className="line-clamp-2">{auction.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">

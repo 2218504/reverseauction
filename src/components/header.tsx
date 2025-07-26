@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Gavel, LogOut } from 'lucide-react';
+import { Gavel, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -67,6 +67,13 @@ export default function Header() {
                           </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                           <Link href={`/profile/${user.uid}`}>
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
+                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={logout}>
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Log out</span>
@@ -93,3 +100,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

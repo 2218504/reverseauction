@@ -19,6 +19,7 @@ export interface Auction {
   imageHint: string;
   status: AuctionStatus;
   winnerId?: string;
+  secretKey?: string | null;
 }
 
 export interface AuctionData {
@@ -31,6 +32,7 @@ export interface AuctionData {
   imageHint: string;
   status: AuctionStatus;
   winnerId?: string;
+  secretKey?: string | null;
 }
 
 export interface Bid {
@@ -39,6 +41,8 @@ export interface Bid {
   user: string;
   amount: number;
   time: Date;
+  auctionId: string;
+  auctionTitle: string;
 }
 
 export interface BidData {
@@ -46,6 +50,8 @@ export interface BidData {
     user: string;
     amount: number;
     time: Timestamp;
+    auctionId: string;
+    auctionTitle: string;
 }
 
 
@@ -54,8 +60,9 @@ interface AuctionContextType {
   addAuction: (auction: Omit<Auction, 'id' | 'status'>) => Promise<void>;
   getAuctionById: (id: string) => Promise<Auction | undefined>;
   updateAuctionStatus: (id: string, status: AuctionStatus) => Promise<void>;
-  submitBid: (auctionId: string, bidData: Omit<Bid, 'id' | 'time'> & { time: Date | Timestamp }, currentLowestBid: number) => Promise<void>;
+  submitBid: (auctionId: string, bidData: Omit<Bid, 'id' | 'time' | 'auctionId' | 'auctionTitle'> & { time: Date | Timestamp }, currentLowestBid: number) => Promise<void>;
   getBidsForAuction: (auctionId: string, callback: (bids: Bid[]) => void) => () => void;
+  getBidsForUser: (userId: string) => Promise<Bid[]>;
   deleteAuction: (id: string) => Promise<void>;
   listenToAuction: (id: string, callback: (auction: Auction | null) => void) => () => void;
   loading: boolean;
@@ -204,14 +211,20 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
-  const submitBid = async (auctionId: string, bidData: Omit<Bid, 'id' | 'time'> & { time: Date | Timestamp }, currentLowestBid: number) => {
+  const submitBid = async (auctionId: string, bidData: Omit<Bid, 'id' | 'time' | 'auctionId' | 'auctionTitle'> & { time: Date | Timestamp }, currentLowestBid: number) => {
       if (!user) throw new Error("User not authenticated");
+      
+      const auctionDoc = await getDoc(doc(db, 'auctions', auctionId));
+      if (!auctionDoc.exists()) throw new Error("Auction not found");
+      const auctionTitle = auctionDoc.data().title;
 
       const batch = writeBatch(db);
       
       const bidPayload = {
           ...bidData,
           time: Timestamp.fromDate(new Date()),
+          auctionId: auctionId,
+          auctionTitle: auctionTitle,
       }
 
       const newBidRef = doc(collection(db, "auctions", auctionId, "bids"));
@@ -241,6 +254,26 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   };
 
+  const getBidsForUser = async (userId: string): Promise<Bid[]> => {
+    const allBids: Bid[] = [];
+    const auctionsSnapshot = await getDocs(collection(db, "auctions"));
+    
+    for (const auctionDoc of auctionsSnapshot.docs) {
+        const bidsQuery = query(collection(db, "auctions", auctionDoc.id, "bids"), where("userId", "==", userId));
+        const bidsSnapshot = await getDocs(bidsQuery);
+        bidsSnapshot.forEach(bidDoc => {
+            const data = bidDoc.data() as BidData;
+            allBids.push({
+                id: bidDoc.id,
+                ...data,
+                time: data.time.toDate(),
+            });
+        });
+    }
+
+    return allBids.sort((a, b) => b.time.getTime() - a.time.getTime());
+};
+
   const deleteAuction = async (id: string) => {
     // First, delete all bids in the subcollection
     const bidsRef = collection(db, 'auctions', id, 'bids');
@@ -258,7 +291,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, deleteAuction, listenToAuction, loading }}>
+    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, deleteAuction, listenToAuction, loading, getBidsForUser }}>
       {children}
     </AuctionContext.Provider>
   );
@@ -271,3 +304,5 @@ export const useAuctions = () => {
   }
   return context;
 };
+
+    
