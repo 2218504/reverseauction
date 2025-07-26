@@ -37,7 +37,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const fetchProfileData = async () => {
-            if (!userId) return;
+            if (!userId || auctionsLoading) return;
             setLoadingProfile(true);
 
             // Fetch user document
@@ -53,7 +53,7 @@ export default function ProfilePage() {
                 setUserBids(bids);
                 
                 // Fetch details of won auctions
-                if (userData.wonAuctions && userData.wonAuctions.length > 0 && auctions.length > 0) {
+                if (userData.wonAuctions && userData.wonAuctions.length > 0) {
                    const wonDetails = auctions.filter(a => userData.wonAuctions?.includes(a.id));
                    setWonAuctionDetails(wonDetails);
                 }
@@ -65,11 +65,12 @@ export default function ProfilePage() {
             setLoadingProfile(false);
         };
 
-        if (!authLoading && auctions.length > 0) {
+        if (!authLoading) {
             fetchProfileData();
         }
 
-    }, [userId, router, getBidsForUser, authLoading, auctions]);
+    }, [userId, router, getBidsForUser, authLoading, auctions, auctionsLoading]);
+
 
     const getInitials = (name?: string | null) => {
         if (!name) return 'U';
@@ -107,10 +108,10 @@ export default function ProfilePage() {
     }
 
     const uniqueBids = userBids
+        .filter(bid => auctions.some(a => a.id === bid.auctionId)) // Only show bids for existing auctions
         .filter((bid, index, self) => 
             index === self.findIndex((b) => b.auctionId === bid.auctionId)
-        )
-        .filter(bid => auctions.some(a => a.id === bid.auctionId)); // Only show bids for existing auctions
+        );
 
 
     return (
@@ -167,7 +168,7 @@ export default function ProfilePage() {
                                 const totalBidsForAuction = userBids.filter(b => b.auctionId === bid.auctionId).length;
                                  return (
                                     <TableRow key={bid.id}>
-                                        <TableCell className="font-medium">{bid.auctionTitle}</TableCell>
+                                        <TableCell className="font-medium">{auction?.title}</TableCell>
                                         <TableCell className="text-center">
                                             {auction && (
                                                 <Badge variant={auction.status === 'live' ? 'default' : auction.status === 'completed' ? 'secondary' : 'outline'}>
