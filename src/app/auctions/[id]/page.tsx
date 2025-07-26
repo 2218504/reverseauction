@@ -71,6 +71,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
   const userCurrentBid = user ? bids.find(bid => bid.userId === user.uid) : null;
   const uniqueBidders = new Set(bids.map(bid => bid.userId)).size;
   const winner = isFinished && bids.length > 0 ? bids[0] : null; // Bids are sorted by amount asc
+  const hasUserBid = user ? bids.some(bid => bid.userId === user.uid) : false;
 
   // Update bid input when user has an existing bid
   useEffect(() => {
@@ -277,17 +278,38 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
             <Separator />
             
             {isFinished ? (
-                 <Alert className="border-green-500 text-green-700">
-                    <Bell className="h-4 w-4 !text-green-700" />
-                    <AlertTitle className="font-headline text-green-800">Auction Ended!</AlertTitle>
+                 <Alert className={
+                    winner && user && winner.userId === user.uid 
+                      ? 'border-green-500 text-green-700' 
+                      : (hasUserBid ? 'border-destructive/50 text-destructive' : 'border-border')
+                 }>
+                    <Bell className={
+                        winner && user && winner.userId === user.uid 
+                          ? '!text-green-700' 
+                          : (hasUserBid ? '!text-destructive' : 'text-foreground')
+                    } />
+                    <AlertTitle className={`font-headline ${
+                        winner && user && winner.userId === user.uid 
+                          ? 'text-green-800' 
+                          : (hasUserBid ? 'text-destructive' : 'text-foreground')
+                    }`}>
+                      Auction Ended!
+                    </AlertTitle>
                     <AlertDescription>
-                        {winner && isAdmin ? (
-                          <>The winner is <span className="font-bold">{winner?.user}</span> with a bid of <span className="font-bold">${winner?.amount.toLocaleString()}</span>.</>
-                        ) : winner && user && winner.userId === user.uid ? (
-                          <>Congratulations! You won the auction with a bid of <span className="font-bold">${winner?.amount.toLocaleString()}</span>.</>
-                        ): (
-                          "The auction has concluded."
+                        {isAdmin && winner && (
+                            <>The winner is <span className="font-bold">{winner.user}</span> with a bid of <span className="font-bold">${winner.amount.toLocaleString()}</span>.</>
                         )}
+                        {!isAdmin && winner && user && winner.userId === user.uid && (
+                            <>Congratulations! You won the auction with a bid of <span className="font-bold">${winner.amount.toLocaleString()}</span>.</>
+                        )}
+                        {!isAdmin && winner && user && winner.userId !== user.uid && hasUserBid && (
+                            <>Unfortunately, you did not win this auction. The winning bid was <span className="font-bold">${winner.amount.toLocaleString()}</span>. Better luck next time!</>
+                        )}
+                        {(!user || (!hasUserBid && !isAdmin)) && (
+                            "The auction has concluded."
+                        )}
+                         {!winner && ( "The auction has concluded, but there were no bids." )}
+
                     </AlertDescription>
                 </Alert>
             ) : isAdmin ? (
