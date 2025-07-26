@@ -124,6 +124,7 @@ interface AuctionContextType {
     reviewData: { [key: string]: Review }
   ) => Promise<void>;
   getReviewsForUser: (userId: string) => Promise<Review[]>;
+  getAllBids: () => Promise<Bid[]>;
   loading: boolean;
 }
 
@@ -358,6 +359,34 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   };
 
+  const getAllBids = async (): Promise<Bid[]> => {
+    try {
+      const allBids: Bid[] = [];
+      const auctionsSnapshot = await getDocs(collection(db, "auctions"));
+
+      for (const auctionDoc of auctionsSnapshot.docs) {
+        const auctionId = auctionDoc.id;
+        const auctionData = auctionDoc.data() as AuctionData;
+        const bidsRef = collection(db, "auctions", auctionId, "bids");
+        const bidsSnapshot = await getDocs(bidsRef);
+
+        bidsSnapshot.forEach((bidDoc) => {
+          const data = bidDoc.data() as BidData;
+          allBids.push({
+            id: bidDoc.id,
+            ...data,
+            time: data.time.toDate(),
+          });
+        });
+      }
+
+      return allBids.sort((a, b) => b.time.getTime() - a.time.getTime());
+    } catch (error) {
+      console.error("Error fetching all bids:", error);
+      return [];
+    }
+  };
+
   const getBidsForUser = useCallback(
     async (userId: string): Promise<Bid[]> => {
       const allBids: Bid[] = [];
@@ -448,6 +477,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
         listenToAuction,
         loading,
         getBidsForUser,
+        getAllBids,
         submitReview,
         getReviewsForUser,
       }}
