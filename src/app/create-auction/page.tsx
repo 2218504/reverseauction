@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { DollarSign, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { useAuctions } from '@/context/AuctionContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -112,7 +112,7 @@ export default function CreateAuctionPage() {
                <div className="space-y-2">
                 <Label htmlFor="startPrice">Starting Price (Max Bid)</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground">₹</span>
                   <Input id="startPrice" type="number" placeholder="25000" className="pl-10" value={startPrice} onChange={(e) => setStartPrice(e.target.value)} required/>
                 </div>
               </div>
@@ -142,3 +142,5 @@ export default function CreateAuctionPage() {
     </div>
   );
 }
+
+    

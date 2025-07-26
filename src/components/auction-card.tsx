@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, DollarSign, ArrowRight, Trash2 } from 'lucide-react';
+import { Clock, ArrowRight, Trash2 } from 'lucide-react';
 import CountdownTimer from './countdown-timer';
 import type { Auction } from '@/context/AuctionContext';
 import { useAuth } from '@/context/AuthContext';
@@ -58,8 +58,8 @@ export function AuctionCard({ auction, onDelete }: AuctionCardProps) {
       </CardHeader>
       <CardContent className="flex-grow">
          <div className="flex items-center text-sm text-muted-foreground mb-4">
-          <DollarSign className="mr-2 h-4 w-4" />
-          <span>Starting Price: ${auction.currentLowestBid.toLocaleString()}</span>
+          <span className="mr-2 h-4 w-4">₹</span>
+          <span>Starting Price: {auction.currentLowestBid.toLocaleString()}</span>
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <Clock className="mr-2 h-4 w-4" />
@@ -76,3 +76,5 @@ export function AuctionCard({ auction, onDelete }: AuctionCardProps) {
     </Card>
   );
 }
+
+    

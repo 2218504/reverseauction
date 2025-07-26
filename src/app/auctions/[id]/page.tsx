@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import CountdownTimer from "@/components/countdown-timer";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, DollarSign, Gavel, History, Trash2, User, Users } from "lucide-react";
+import { Bell, Gavel, History, Trash2, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { useAuctions, Auction, Bid } from "@/context/AuctionContext";
@@ -124,7 +124,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
       
       toast({
         title: "Bid Placed!",
-        description: `Your bid of $${newBidAmount.toLocaleString()} has been successfully submitted.`,
+        description: `Your bid of ₹${newBidAmount.toLocaleString()} has been successfully submitted.`,
       });
       
     } catch (error: any) {
@@ -234,7 +234,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                                 </div>
                                 <div className="text-right">
                                     <p className={`font-bold text-lg ${isUserBid ? 'text-blue-600' : ''}`}>
-                                      ${bid.amount.toLocaleString()}
+                                      ₹{bid.amount.toLocaleString()}
                                     </p>
                                     <p className="text-xs text-muted-foreground">{bid.time.toLocaleTimeString()}</p>
                                 </div>
@@ -260,7 +260,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
             {isAdmin && (
                 <div className="text-center bg-primary/10 p-4 rounded-lg">
                     <p className="text-sm text-primary font-medium">Current Lowest Bid</p>
-                    <p className="text-4xl font-bold text-primary">${(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}</p>
+                    <p className="text-4xl font-bold text-primary">₹{(bids.length > 0 ? bids[0].amount : auction.currentLowestBid).toLocaleString()}</p>
                 </div>
             )}
               
@@ -324,13 +324,13 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                     </AlertTitle>
                     <AlertDescription>
                         {isAdmin && winner && (
-                            <>The winner is <span className="font-bold">{winner.user}</span> with a bid of <span className="font-bold">${winner.amount.toLocaleString()}</span>.</>
+                            <>The winner is <span className="font-bold">{winner.user}</span> with a bid of <span className="font-bold">₹{winner.amount.toLocaleString()}</span>.</>
                         )}
                         {!isAdmin && winner && user && winner.userId === user.uid && (
-                            <>Congratulations! You won the auction with a bid of <span className="font-bold">${winner.amount.toLocaleString()}</span>.</>
+                            <>Congratulations! You won the auction with a bid of <span className="font-bold">₹{winner.amount.toLocaleString()}</span>.</>
                         )}
                         {!isAdmin && winner && user && winner.userId !== user.uid && hasUserBid && (
-                            <>Unfortunately, you did not win this auction. The winning bid was <span className="font-bold">${winner.amount.toLocaleString()}</span>. Better luck next time!</>
+                            <>Unfortunately, you did not win this auction. The winning bid was <span className="font-bold">₹{winner.amount.toLocaleString()}</span>. Better luck next time!</>
                         )}
                         {(!user || (!hasUserBid && !isAdmin)) && (
                             "The auction has concluded."
@@ -348,7 +348,7 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                     {userCurrentBid && !isAdmin && (
                       <div className="text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
                         <p className="text-sm text-blue-600 font-medium">Your Current Bid</p>
-                        <p className="text-2xl font-bold text-blue-700">${userCurrentBid.amount.toLocaleString()}</p>
+                        <p className="text-2xl font-bold text-blue-700">₹{userCurrentBid.amount.toLocaleString()}</p>
                       </div>
                     )}
                     
@@ -359,14 +359,14 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                         <div>
                             <Label htmlFor="bid" className="sr-only">Bid Amount</Label>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground">₹</span>
                                 <Input 
                                     id="bid" 
                                     type="number" 
                                     step="any"
                                     placeholder={
                                       userCurrentBid
-                                        ? `Lower than $${userCurrentBid.amount.toLocaleString()}`
+                                        ? `Lower than ₹${userCurrentBid.amount.toLocaleString()}`
                                         : 'Enter your bid amount'
                                     }
                                     className="pl-10 text-lg h-12"
@@ -390,7 +390,5 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
     </div>
   );
 }
-
-    
 
     
