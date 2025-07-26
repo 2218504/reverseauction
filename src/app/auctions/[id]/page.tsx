@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useAuctions, Auction, Bid } from "@/context/AuctionContext";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function AuctionPage({ params: { id: auctionId } }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -69,7 +70,11 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
   
   // Derived state from bids and auction
   const userCurrentBid = user ? bids.find(bid => bid.userId === user.uid) : null;
-  const uniqueBidders = new Set(bids.map(bid => bid.userId)).size;
+  const uniqueBiddersSet = new Set(bids.map(bid => bid.userId));
+  const uniqueBidders = uniqueBiddersSet.size;
+  const uniqueBidderUsers = Array.from(uniqueBiddersSet).map(userId => {
+    return bids.find(bid => bid.userId === userId)?.user || 'Unknown';
+  });
   const winner = isFinished && bids.length > 0 ? bids[0] : null; // Bids are sorted by amount asc
   const hasUserBid = user ? bids.some(bid => bid.userId === user.uid) : false;
 
@@ -271,8 +276,30 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
             </div>
 
             <div className="flex items-center justify-center text-sm text-muted-foreground gap-2">
-                <Users className="h-4 w-4" /> 
-                <span>{uniqueBidders} {uniqueBidders === 1 ? 'bidder' : 'bidders'}</span>
+                <Users className="h-4 w-4" />
+                 {isAdmin ? (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                         <span className="cursor-pointer hover:underline">{uniqueBidders} {uniqueBidders === 1 ? 'bidder' : 'bidders'}</span>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Auction Participants ({uniqueBidders})</DialogTitle>
+                        </DialogHeader>
+                        <ul className="space-y-2 mt-4">
+                          {uniqueBidderUsers.map((bidderName, index) => (
+                            <li key={index} className="flex items-center gap-3 bg-secondary p-2 rounded-md">
+                              <User className="h-5 w-5 text-muted-foreground" />
+                              <span className="font-medium">{bidderName}</span>
+                            </li>
+                          ))}
+                          {uniqueBidders === 0 && <p className="text-center text-muted-foreground">No bidders yet.</p>}
+                        </ul>
+                      </DialogContent>
+                    </Dialog>
+                ) : (
+                    <span>{uniqueBidders} {uniqueBidders === 1 ? 'bidder' : 'bidders'}</span>
+                )}
             </div>
 
             <Separator />
@@ -363,3 +390,5 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
     </div>
   );
 }
+
+    
