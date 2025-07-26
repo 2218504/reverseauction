@@ -1,3 +1,4 @@
+
 "use client";
 import { AuctionCard } from "@/components/auction-card";
 import { useAuctions } from "@/context/AuctionContext";
@@ -5,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon, Filter, X } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import type { Auction } from "@/context/AuctionContext";
 
 export default function AuctionsPage() {
@@ -75,34 +76,32 @@ export default function AuctionsPage() {
     }
   };
 
+  const liveAuctions = useMemo(() => auctions.filter((a) => a.status === "live"), [auctions]);
+  const startingSoonAuctions = useMemo(() => auctions.filter((a) => a.status === "starting-soon"), [auctions]);
+  const completedAuctions = useMemo(() => auctions.filter((a) => a.status === "completed"), [auctions]);
+
   // Filter completed auctions by starting date
-  const filterCompletedAuctions = (auctions: Auction[]) => {
-    let filtered = auctions;
+  const filteredCompletedAuctions = useMemo(() => {
+    let filtered = completedAuctions;
 
     // Apply date filtering if starting date is set
     if (startingDate) {
-      filtered = auctions.filter((auction) => {
-        // Use startTime field from your database
+      filtered = filtered.filter((auction) => {
         const auctionStartDate = new Date(auction.startTime);
         const filterDate = new Date(startingDate);
-
-        // Set both dates to start of day for exact date comparison
         filterDate.setHours(0, 0, 0, 0);
         const auctionDateOnly = new Date(auctionStartDate);
         auctionDateOnly.setHours(0, 0, 0, 0);
-
-        // Show auctions that started exactly on the selected date
         return auctionDateOnly.getTime() === filterDate.getTime();
       });
     }
 
-    // Apply limit: show only 3 by default unless "show all" is clicked or date filter is active
     if (!showAllCompleted && !startingDate) {
       return filtered.slice(0, 3);
     }
 
     return filtered;
-  };
+  }, [completedAuctions, startingDate, showAllCompleted]);
 
   const applyDateFilter = () => {
     setStartingDate(tempStartingDate);
@@ -161,13 +160,6 @@ export default function AuctionsPage() {
   if (!user) {
     return null;
   }
-
-  const liveAuctions = auctions.filter((a) => a.status === "live");
-  const startingSoonAuctions = auctions.filter(
-    (a) => a.status === "starting-soon"
-  );
-  const completedAuctions = auctions.filter((a) => a.status === "completed");
-  const filteredCompletedAuctions = filterCompletedAuctions(completedAuctions);
 
   return (
     <div>
