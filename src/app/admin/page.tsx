@@ -29,20 +29,20 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { AuctionStatusChart, UserRegistrationChart } from "@/components/admin-charts";
 
-
-const mockUsers = [
-  { id: 'USR001', name: 'Alice Johnson', email: 'alice@example.com', auctions: 5, status: 'Active' },
-  { id: 'USR002', name: 'Bob Williams', email: 'bob@example.com', auctions: 2, status: 'Active' },
-  { id: 'USR003', name: 'Charlie Brown', email: 'charlie@example.com', auctions: 8, status: 'Suspended' },
-  { id: 'USR004', name: 'Diana Prince', email: 'diana@example.com', auctions: 1, status: 'Active' },
-];
 
 export default function AdminDashboard() {
   const { auctions, loading: auctionsLoading, deleteAuction } = useAuctions();
+  const { allUsers, loading: authLoading, getAllUsers } = useAuth();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+        getAllUsers();
+  }, [getAllUsers]);
 
   const handleDeleteAuction = async (auctionId: string) => {
     setIsDeleting(true);
@@ -63,114 +63,113 @@ export default function AdminDashboard() {
     }
   }
 
-
-  if (auctionsLoading) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline text-3xl">Admin Dashboard</CardTitle>
-                <CardDescription>Manage auctions and users across the platform.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Skeleton className="h-10 w-48 mb-4" />
-                <Skeleton className="h-96 w-full" />
-            </CardContent>
-        </Card>
-    )
-  }
+  const loading = auctionsLoading || authLoading;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline text-3xl">Admin Dashboard</CardTitle>
-        <CardDescription>Manage auctions and users across the platform.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="auctions">
-          <TabsList>
-            <TabsTrigger value="auctions">Auctions</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-          </TabsList>
-          <TabsContent value="auctions" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Auction Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>End Time</TableHead>
-                      <TableHead>Winner</TableHead>
-                      <TableHead><span className="sr-only">Actions</span></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {auctions.map((auction) => (
-                      <TableRow key={auction.id}>
-                        <TableCell className="font-medium">{auction.id}</TableCell>
-                        <TableCell>{auction.title}</TableCell>
-                        <TableCell>
-                          <Badge variant={auction.status === 'live' ? 'default' : auction.status === 'completed' ? 'secondary' : 'outline'}>{auction.status}</Badge>
-                        </TableCell>
-                        <TableCell>{auction.endTime.toLocaleString()}</TableCell>
-                        <TableCell>{auction.winnerId || 'N/A'}</TableCell>
-                         <TableCell>
-                           <AdminActionMenu 
-                            onDelete={() => handleDeleteAuction(auction.id)}
-                            isDeleting={isDeleting}
-                           />
-                        </TableCell>
+    <div className="space-y-8">
+      <div className="text-center">
+        <h1 className="text-4xl font-headline font-bold">Admin Dashboard</h1>
+        <p className="text-muted-foreground">Manage auctions, users, and view platform analytics.</p>
+      </div>
+
+       {loading ? (
+        <div className="grid gap-8 md:grid-cols-2">
+            <Card><CardHeader><Skeleton className="h-8 w-3/4" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>
+            <Card><CardHeader><Skeleton className="h-8 w-3/4" /></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>
+        </div>
+      ) : (
+        <div className="grid gap-8 md:grid-cols-2">
+          <AuctionStatusChart auctions={auctions} />
+          <UserRegistrationChart users={allUsers} />
+        </div>
+      )}
+
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs defaultValue="auctions">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="auctions">Auctions</TabsTrigger>
+              <TabsTrigger value="users">Users</TabsTrigger>
+            </TabsList>
+            <TabsContent value="auctions" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Auction Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>End Time</TableHead>
+                        <TableHead>Winner</TableHead>
+                        <TableHead><span className="sr-only">Actions</span></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="users" className="mt-6">
-             <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Auctions Joined</TableHead>
-                      <TableHead>Status</TableHead>
-                       <TableHead><span className="sr-only">Actions</span></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.id}</TableCell>
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.auctions}</TableCell>
-                        <TableCell>
-                           <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>{user.status}</Badge>
-                        </TableCell>
-                         <TableCell>
-                           <AdminActionMenu onDelete={() => {}} isDeleting={false} />
-                        </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {auctions.map((auction) => (
+                        <TableRow key={auction.id}>
+                          <TableCell className="font-medium">{auction.id.substring(0,6)}...</TableCell>
+                          <TableCell>{auction.title}</TableCell>
+                          <TableCell>
+                            <Badge variant={auction.status === 'live' ? 'default' : auction.status === 'completed' ? 'secondary' : 'outline'}>{auction.status}</Badge>
+                          </TableCell>
+                          <TableCell>{auction.endTime.toLocaleString()}</TableCell>
+                          <TableCell>{auction.winnerId || 'N/A'}</TableCell>
+                          <TableCell>
+                            <AdminActionMenu 
+                              onDelete={() => handleDeleteAuction(auction.id)}
+                              isDeleting={isDeleting}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="users" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead><span className="sr-only">Actions</span></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {allUsers.map((user) => (
+                        <TableRow key={user.uid}>
+                          <TableCell className="font-medium">{user.uid.substring(0,6)}...</TableCell>
+                          <TableCell>{user.displayName}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <AdminActionMenu onDelete={() => {}} isDeleting={false} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

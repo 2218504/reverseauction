@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { auth, db } from '@/lib/firebase/firebase';
 import { 
   onAuthStateChanged, 
@@ -10,21 +11,31 @@ import {
   signOut,
   updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 
-// Custom User interface that extends Firebase User with role
-interface CustomUser extends FirebaseUser {
-  role: string;
+export interface ProfileUser {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL?: string | null;
+  role: 'admin' | 'user';
+  createdAt?: string;
+  wonAuctions?: string[];
 }
+
+interface CustomUser extends FirebaseUser, ProfileUser {}
 
 interface AuthContextType {
   user: CustomUser | null;
+  allUsers: ProfileUser[];
   loading: boolean;
   isAdmin: boolean;
   login: (email: string, pass: string) => Promise<void>;
   signup: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  getUserProfile: (uid: string) => Promise<ProfileUser | null>;
+  getAllUsers: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +44,7 @@ const ADMIN_EMAIL = 'admin@reverseauctionpro.com';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CustomUser | null>(null);
+  const [allUsers, setAllUsers] = useState<ProfileUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
@@ -42,23 +54,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setLoading(true);
       if (currentUser) {
-        // Fetch user role from Firestore
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         
-        let userRole = 'user'; // default role
-        if (userDoc.exists()) {
-          userRole = userDoc.data().role || 'user';
-        }
+        const userData = userDoc.exists() ? userDoc.data() as ProfileUser : { role: 'user', uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName };
         
-        // Create custom user object with role
-        const customUser: CustomUser = {
-          ...currentUser,
-          role: userRole
-        };
+        const customUser: CustomUser = Object.assign({}, currentUser, userData);
         
         setUser(customUser);
-        setIsAdmin(userRole === 'admin');
+        setIsAdmin(userData.role === 'admin');
 
         if (pathname === '/login' || pathname === '/register') {
           router.push('/auctions');
@@ -66,8 +70,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUser(null);
         setIsAdmin(false);
-        const protectedRoutes = ['/auctions', '/create-auction', '/admin'];
-        if(protectedRoutes.includes(pathname)) {
+        const protectedRoutes = ['/auctions', '/create-auction', '/admin', '/profile'];
+        if(protectedRoutes.some(p => pathname.startsWith(p))) {
             router.push('/login');
         }
       }
@@ -89,12 +93,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const role = newUser.email === ADMIN_EMAIL ? 'admin' : 'user';
 
-    const userDocData = {
+    const userDocData: ProfileUser = {
       uid: newUser.uid,
       email: newUser.email,
       displayName: name,
       role: role,
       createdAt: new Date().toISOString(),
+      wonAuctions: [],
     };
     
     await setDoc(doc(db, "users", newUser.uid), userDocData);
@@ -105,13 +110,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/');
   };
 
+  const getUserProfile = useCallback(async (uid: string) => {
+    const userDocRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      return userDoc.data() as ProfileUser;
+    }
+    return null;
+  }, []);
+  
+  const getAllUsers = useCallback(async () => {
+    const usersCollection = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersCollection);
+    const usersList = usersSnapshot.docs.map(doc => doc.data() as ProfileUser);
+    setAllUsers(usersList);
+  }, []);
+
   const value = {
     user,
+    allUsers,
     loading,
     isAdmin,
     login,
     signup,
     logout,
+    getUserProfile,
+    getAllUsers
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

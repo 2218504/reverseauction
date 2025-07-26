@@ -1,12 +1,22 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc, writeBatch, query, onSnapshot, orderBy, where, deleteDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase/firebase';
 import { useAuth } from './AuthContext';
 
 export type AuctionStatus = 'live' | 'starting-soon' | 'completed';
+
+export interface Review {
+  id?: string;
+  rating: number;
+  comment: string;
+  reviewerId: string;
+  reviewerName: string;
+  reviewedUserId: string;
+  time: Date;
+}
 
 export interface Auction {
   id: string;
@@ -20,6 +30,8 @@ export interface Auction {
   status: AuctionStatus;
   winnerId?: string;
   secretKey?: string | null;
+  winnerReview?: Review;
+  adminReview?: Review;
 }
 
 export interface AuctionData {
@@ -33,6 +45,8 @@ export interface AuctionData {
   status: AuctionStatus;
   winnerId?: string;
   secretKey?: string | null;
+  winnerReview?: Review;
+  adminReview?: Review;
 }
 
 export interface Bid {
@@ -60,11 +74,13 @@ interface AuctionContextType {
   addAuction: (auction: Omit<Auction, 'id' | 'status'>) => Promise<void>;
   getAuctionById: (id: string) => Promise<Auction | undefined>;
   updateAuctionStatus: (id: string, status: AuctionStatus) => Promise<void>;
-  submitBid: (auctionId: string, bidData: Omit<Bid, 'id' | 'time' | 'auctionId' | 'auctionTitle'> & { time: Date | Timestamp }, currentLowestBid: number) => Promise<void>;
+  submitBid: (auctionId: string, bidData: Omit<Bid, 'id' | 'time' | 'auctionId' | 'auctionTitle' | 'auctionId' | 'auctionTitle'>, currentLowestBid: number) => Promise<void>;
   getBidsForAuction: (auctionId: string, callback: (bids: Bid[]) => void) => () => void;
   getBidsForUser: (userId: string) => Promise<Bid[]>;
   deleteAuction: (id: string) => Promise<void>;
   listenToAuction: (id: string, callback: (auction: Auction | null) => void) => () => void;
+  submitReview: (auctionId: string, reviewData: { [key: string]: Review }) => Promise<void>;
+  getReviewsForUser: (userId: string) => Promise<Review[]>;
   loading: boolean;
 }
 
@@ -210,31 +226,40 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   };
 
+  const submitBid = async (auctionId: string, bidData: Omit<Bid, 'id' | 'time' | 'auctionId' | 'auctionTitle'>, currentLowestBid: number) => {
+    if (!user) throw new Error("User not authenticated");
 
-  const submitBid = async (auctionId: string, bidData: Omit<Bid, 'id' | 'time' | 'auctionId' | 'auctionTitle'> & { time: Date | Timestamp }, currentLowestBid: number) => {
-      if (!user) throw new Error("User not authenticated");
-      
-      const auctionDoc = await getDoc(doc(db, 'auctions', auctionId));
-      if (!auctionDoc.exists()) throw new Error("Auction not found");
-      const auctionTitle = auctionDoc.data().title;
+    const auctionDoc = await getDoc(doc(db, 'auctions', auctionId));
+    if (!auctionDoc.exists()) throw new Error("Auction not found");
+    const auctionTitle = auctionDoc.data().title;
+    
+    const bidPayload = {
+      ...bidData,
+      time: Timestamp.fromDate(new Date()),
+      auctionId: auctionId,
+      auctionTitle: auctionTitle,
+    };
+    
+    // Check if user already has a bid, if so, update it. Otherwise, create a new one.
+    const userBidsQuery = query(collection(db, "auctions", auctionId, "bids"), where("userId", "==", user.uid));
+    const userBidsSnapshot = await getDocs(userBidsQuery);
 
-      const batch = writeBatch(db);
-      
-      const bidPayload = {
-          ...bidData,
-          time: Timestamp.fromDate(new Date()),
-          auctionId: auctionId,
-          auctionTitle: auctionTitle,
-      }
+    const batch = writeBatch(db);
+    if (!userBidsSnapshot.empty) {
+        // User has an existing bid, update it
+        const bidDocRef = userBidsSnapshot.docs[0].ref;
+        batch.update(bidDocRef, bidPayload);
+    } else {
+        // New bid for this user
+        const newBidRef = doc(collection(db, "auctions", auctionId, "bids"));
+        batch.set(newBidRef, bidPayload);
+    }
 
-      const newBidRef = doc(collection(db, "auctions", auctionId, "bids"));
-      batch.set(newBidRef, bidPayload);
-
-      const auctionRef = doc(db, "auctions", auctionId);
-      batch.update(auctionRef, { currentLowestBid: bidData.amount });
-      
-      await batch.commit();
-  }
+    const auctionRef = doc(db, "auctions", auctionId);
+    batch.update(auctionRef, { currentLowestBid: bidData.amount });
+    
+    await batch.commit();
+  };
 
   const getBidsForAuction = (auctionId: string, callback: (bids: Bid[]) => void) => {
     const q = query(collection(db, "auctions", auctionId, "bids"), orderBy('amount', 'asc'));
@@ -242,11 +267,7 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const bids = querySnapshot.docs.map(docSnapshot => {
             const data = docSnapshot.data() as BidData;
-            return {
-                id: docSnapshot.id,
-                ...data,
-                time: data.time.toDate(),
-            };
+            return { id: docSnapshot.id, ...data, time: data.time.toDate() };
         });
         callback(bids);
     });
@@ -254,44 +275,61 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   };
 
-  const getBidsForUser = async (userId: string): Promise<Bid[]> => {
+  const getBidsForUser = useCallback(async (userId: string): Promise<Bid[]> => {
     const allBids: Bid[] = [];
-    const auctionsSnapshot = await getDocs(collection(db, "auctions"));
+    if (!auctions.length) return [];
     
-    for (const auctionDoc of auctionsSnapshot.docs) {
-        const bidsQuery = query(collection(db, "auctions", auctionDoc.id, "bids"), where("userId", "==", userId));
+    for (const auction of auctions) {
+        const bidsQuery = query(collection(db, "auctions", auction.id, "bids"), where("userId", "==", userId));
         const bidsSnapshot = await getDocs(bidsQuery);
         bidsSnapshot.forEach(bidDoc => {
             const data = bidDoc.data() as BidData;
-            allBids.push({
-                id: bidDoc.id,
-                ...data,
-                time: data.time.toDate(),
-            });
+            allBids.push({ id: bidDoc.id, ...data, time: data.time.toDate() });
         });
     }
 
     return allBids.sort((a, b) => b.time.getTime() - a.time.getTime());
-};
+  }, [auctions]);
 
   const deleteAuction = async (id: string) => {
-    // First, delete all bids in the subcollection
     const bidsRef = collection(db, 'auctions', id, 'bids');
     const bidsSnapshot = await getDocs(bidsRef);
     const batch = writeBatch(db);
-    bidsSnapshot.forEach((bidDoc) => {
-        batch.delete(bidDoc.ref);
-    });
+    bidsSnapshot.forEach((bidDoc) => { batch.delete(bidDoc.ref); });
     await batch.commit();
 
-    // Then, delete the auction document itself
     const auctionRef = doc(db, 'auctions', id);
     await deleteDoc(auctionRef);
-  }
+  };
+  
+  const submitReview = async (auctionId: string, reviewData: { [key: string]: Review }) => {
+    const auctionRef = doc(db, 'auctions', auctionId);
+    await updateDoc(auctionRef, reviewData);
+  };
+
+  const getReviewsForUser = useCallback(async (userId: string): Promise<Review[]> => {
+    const allReviews: Review[] = [];
+    const qWinner = query(collection(db, 'auctions'), where('winnerId', '==', userId));
+    const winnerSnapshot = await getDocs(qWinner);
+    winnerSnapshot.forEach(doc => {
+        const data = doc.data() as AuctionData;
+        if (data.adminReview) allReviews.push({ id: doc.id, ...data.adminReview });
+    });
+
+    if(userId === 'admin'){ // A special case to get reviews for the admin
+        const allAuctionsSnapshot = await getDocs(collection(db, 'auctions'));
+        allAuctionsSnapshot.forEach(doc => {
+            const data = doc.data() as AuctionData;
+            if(data.winnerReview) allReviews.push({ id: doc.id, ...data.winnerReview });
+        });
+    }
+
+    return allReviews.sort((a, b) => b.time.getTime() - a.time.getTime());
+  }, []);
 
 
   return (
-    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, deleteAuction, listenToAuction, loading, getBidsForUser }}>
+    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, deleteAuction, listenToAuction, loading, getBidsForUser, submitReview, getReviewsForUser }}>
       {children}
     </AuctionContext.Provider>
   );
@@ -304,5 +342,3 @@ export const useAuctions = () => {
   }
   return context;
 };
-
-    
