@@ -1,65 +1,53 @@
 
 "use client";
 import Image from "next/image";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import CountdownTimer from "@/components/countdown-timer";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, DollarSign, Gavel, History, User, Users } from "lucide-react";
+import { Bell, DollarSign, Gavel, History, Trash2, User, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { useAuctions, Auction, Bid } from "@/context/AuctionContext";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
 
 export default function AuctionPage({ params: { id: auctionId } }: { params: { id: string } }) {
   const { toast } = useToast();
-  const { getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction } = useAuctions();
+  const { getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, listenToAuction } = useAuctions();
   const { user, isAdmin, loading: authLoading } = useAuth();
-  const router = useRouter();
   
-  const [auction, setAuction] = useState<Auction | undefined | null>(null);
+  const [auction, setAuction] = useState<Auction | undefined | null>(undefined);
   const [bids, setBids] = useState<Bid[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const isInitialized = useRef(false);
-
-  // Fetch auction data once
+  // Real-time listener for auction document
   useEffect(() => {
-    if (!auctionId || isInitialized.current) return;
+    if (!auctionId) return;
     
-    const fetchAuction = async () => {
-      setPageLoading(true);
-      try {
-        const fetchedAuction = await getAuctionById(auctionId);
-        if (fetchedAuction) {
-          setAuction(fetchedAuction);
-          if (fetchedAuction.status === 'completed') {
-              setIsFinished(true);
-          } else {
-              setIsFinished(new Date() > new Date(fetchedAuction.endTime));
-          }
+    setPageLoading(true);
+    const unsubscribe = listenToAuction(auctionId, (fetchedAuction) => {
+      if (fetchedAuction) {
+        setAuction(fetchedAuction);
+        if (fetchedAuction.status === 'completed') {
+          setIsFinished(true);
         } else {
-           setAuction(null); // Auction not found
+          setIsFinished(new Date() > new Date(fetchedAuction.endTime));
         }
-        isInitialized.current = true;
-      } catch (error) {
-        console.error('Error fetching auction:', error);
-        toast({ variant: 'destructive', title: "Error", description: "Could not load auction data."})
-      } finally {
-        setPageLoading(false);
+      } else {
+        setAuction(null); // Auction was deleted or doesn't exist
       }
-    };
+      setPageLoading(false);
+    });
 
-    fetchAuction();
-  }, [auctionId, getAuctionById, toast]);
+    return () => unsubscribe(); // Cleanup listener
+  }, [auctionId, listenToAuction]);
 
   // Set up real-time listener for bids
   useEffect(() => {
@@ -72,13 +60,12 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
     return () => unsubscribe(); // Cleanup listener on component unmount
   }, [auctionId, getBidsForAuction]);
 
-
-  const handleExpire = useCallback(() => {
+  const handleExpire = () => {
     if (auction && auction.status !== 'completed') {
         setIsFinished(true);
         updateAuctionStatus(auction.id, 'completed');
     }
-  }, [auction, updateAuctionStatus]);
+  };
   
   // Derived state from bids and auction
   const userCurrentBid = user ? bids.find(bid => bid.userId === user.uid) : null;
@@ -109,12 +96,11 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
         return;
     }
     
-    // Reverse auction logic: bid must be lower than the current lowest bid
     if (bids.length > 0 && newBidAmount >= bids[0].amount) {
       toast({
         variant: "destructive",
         title: "Invalid Bid",
-        description: `Your bid must be lower than the current lowest bid of $${bids[0].amount.toLocaleString()}.`,
+        description: `Your bid must be lower than the current lowest bid.`,
       });
       setIsSubmitting(false);
       return;
@@ -181,6 +167,18 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
             </div>
         </div>
     )
+  }
+
+  if (auction === null) {
+     return (
+      <Card className="col-span-3">
+        <CardHeader className="items-center text-center">
+            <Trash2 className="h-16 w-16 text-destructive mb-4" />
+            <CardTitle className="text-2xl font-headline">Auction Deleted</CardTitle>
+            <CardDescription>Sorry, this auction is no longer available as it has been deleted by an administrator.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
 
   if (!auction) {
@@ -285,9 +283,11 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
                     <AlertDescription>
                         {winner && isAdmin ? (
                           <>The winner is <span className="font-bold">{winner?.user}</span> with a bid of <span className="font-bold">${winner?.amount.toLocaleString()}</span>.</>
-                        ) : winner && !isAdmin ? (
-                          <>The auction has concluded.</>
-                        ) : "No bids were placed."}
+                        ) : winner && user && winner.userId === user.uid ? (
+                          <>Congratulations! You won the auction with a bid of <span className="font-bold">${winner?.amount.toLocaleString()}</span>.</>
+                        ): (
+                          "The auction has concluded."
+                        )}
                     </AlertDescription>
                 </Alert>
             ) : isAdmin ? (
@@ -341,5 +341,3 @@ export default function AuctionPage({ params: { id: auctionId } }: { params: { i
     </div>
   );
 }
-
-    

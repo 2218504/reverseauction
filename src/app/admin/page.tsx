@@ -1,4 +1,6 @@
 
+"use client";
+
 import {
   Table,
   TableBody,
@@ -13,13 +15,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuctions } from "@/context/AuctionContext";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
-const mockAuctions = [
-  { id: 'AUC1001', title: 'Website Redesign', status: 'Active', endTime: '2024-08-15 17:00', bids: 12, winner: 'N/A' },
-  { id: 'AUC1002', title: 'Office Supplies', status: 'Active', endTime: '2024-08-12 12:00', bids: 8, winner: 'N/A' },
-  { id: 'AUC1003', title: 'Landscaping Contract', status: 'Ended', endTime: '2024-08-01 10:00', bids: 21, winner: 'GreenThumb Inc.' },
-  { id: 'AUC1004', title: 'Janitorial Services', status: 'Ended', endTime: '2024-07-28 18:00', bids: 5, winner: 'SparkleClean LLC' },
-];
 
 const mockUsers = [
   { id: 'USR001', name: 'Alice Johnson', email: 'alice@example.com', auctions: 5, status: 'Active' },
@@ -29,6 +40,45 @@ const mockUsers = [
 ];
 
 export default function AdminDashboard() {
+  const { auctions, loading: auctionsLoading, deleteAuction } = useAuctions();
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAuction = async (auctionId: string) => {
+    setIsDeleting(true);
+    try {
+        await deleteAuction(auctionId);
+        toast({
+            title: "Auction Deleted",
+            description: "The auction has been successfully deleted.",
+        });
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to delete the auction.",
+        });
+    } finally {
+        setIsDeleting(false);
+    }
+  }
+
+
+  if (auctionsLoading) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline text-3xl">Admin Dashboard</CardTitle>
+                <CardDescription>Manage auctions and users across the platform.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-10 w-48 mb-4" />
+                <Skeleton className="h-96 w-full" />
+            </CardContent>
+        </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -54,24 +104,25 @@ export default function AdminDashboard() {
                       <TableHead>Title</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>End Time</TableHead>
-                      <TableHead>Bids</TableHead>
                       <TableHead>Winner</TableHead>
                       <TableHead><span className="sr-only">Actions</span></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockAuctions.map((auction) => (
+                    {auctions.map((auction) => (
                       <TableRow key={auction.id}>
                         <TableCell className="font-medium">{auction.id}</TableCell>
                         <TableCell>{auction.title}</TableCell>
                         <TableCell>
-                          <Badge variant={auction.status === 'Active' ? 'default' : 'secondary'}>{auction.status}</Badge>
+                          <Badge variant={auction.status === 'live' ? 'default' : auction.status === 'completed' ? 'secondary' : 'outline'}>{auction.status}</Badge>
                         </TableCell>
-                        <TableCell>{auction.endTime}</TableCell>
-                        <TableCell>{auction.bids}</TableCell>
-                        <TableCell>{auction.winner}</TableCell>
+                        <TableCell>{auction.endTime.toLocaleString()}</TableCell>
+                        <TableCell>{auction.winnerId || 'N/A'}</TableCell>
                          <TableCell>
-                           <AdminActionMenu />
+                           <AdminActionMenu 
+                            onDelete={() => handleDeleteAuction(auction.id)}
+                            isDeleting={isDeleting}
+                           />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -108,7 +159,7 @@ export default function AdminDashboard() {
                            <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>{user.status}</Badge>
                         </TableCell>
                          <TableCell>
-                           <AdminActionMenu />
+                           <AdminActionMenu onDelete={() => {}} isDeleting={false} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -123,21 +174,40 @@ export default function AdminDashboard() {
   )
 }
 
-function AdminActionMenu() {
+function AdminActionMenu({ onDelete, isDeleting }: { onDelete: () => void, isDeleting: boolean }) {
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>View Details</DropdownMenuItem>
-                <DropdownMenuItem>Edit</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Delete</DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <AlertDialog>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem>View Details</DropdownMenuItem>
+                    <DropdownMenuItem>Edit</DropdownMenuItem>
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">Delete</DropdownMenuItem>
+                    </AlertDialogTrigger>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the auction
+                    and all associated bids.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }

@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc, writeBatch, query, onSnapshot, orderBy, where, getDocFromCache } from "firebase/firestore";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { collection, addDoc, getDocs, doc, getDoc, Timestamp, updateDoc, writeBatch, query, onSnapshot, orderBy, where, deleteDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase/firebase';
 import { useAuth } from './AuthContext';
 
@@ -56,6 +56,8 @@ interface AuctionContextType {
   updateAuctionStatus: (id: string, status: AuctionStatus) => Promise<void>;
   submitBid: (auctionId: string, bidData: Omit<Bid, 'id' | 'time'> & { time: Date | Timestamp }, currentLowestBid: number) => Promise<void>;
   getBidsForAuction: (auctionId: string, callback: (bids: Bid[]) => void) => () => void;
+  deleteAuction: (id: string) => Promise<void>;
+  listenToAuction: (id: string, callback: (auction: Auction | null) => void) => () => void;
   loading: boolean;
 }
 
@@ -128,7 +130,6 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
             const winningBid = bidsSnapshot.docs[0].data() as BidData;
             updateData.winnerId = winningBid.userId;
 
-            // Add auction to user's wonAuctions
             const userRef = doc(db, 'users', winningBid.userId);
             const userSnap = await getDoc(userRef);
             if(userSnap.exists()){
@@ -173,6 +174,35 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
       return undefined;
     }
   };
+  
+  const listenToAuction = (id: string, callback: (auction: Auction | null) => void) => {
+    const docRef = doc(db, 'auctions', id);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as AuctionData;
+        const startTime = data.startTime.toDate();
+        const endTime = data.endTime.toDate();
+        const status = getStatus(startTime, endTime);
+
+        if (status !== data.status && data.status !== 'completed') {
+          updateDoc(docRef, { status });
+        }
+
+        callback({
+          id: docSnap.id,
+          ...data,
+          startTime,
+          endTime,
+          status,
+        });
+      } else {
+        callback(null); // Document does not exist or was deleted
+      }
+    });
+
+    return unsubscribe;
+  };
+
 
   const submitBid = async (auctionId: string, bidData: Omit<Bid, 'id' | 'time'> & { time: Date | Timestamp }, currentLowestBid: number) => {
       if (!user) throw new Error("User not authenticated");
@@ -211,9 +241,24 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   };
 
+  const deleteAuction = async (id: string) => {
+    // First, delete all bids in the subcollection
+    const bidsRef = collection(db, 'auctions', id, 'bids');
+    const bidsSnapshot = await getDocs(bidsRef);
+    const batch = writeBatch(db);
+    bidsSnapshot.forEach((bidDoc) => {
+        batch.delete(bidDoc.ref);
+    });
+    await batch.commit();
+
+    // Then, delete the auction document itself
+    const auctionRef = doc(db, 'auctions', id);
+    await deleteDoc(auctionRef);
+  }
+
 
   return (
-    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, loading }}>
+    <AuctionContext.Provider value={{ auctions, addAuction, getAuctionById, updateAuctionStatus, submitBid, getBidsForAuction, deleteAuction, listenToAuction, loading }}>
       {children}
     </AuctionContext.Provider>
   );
