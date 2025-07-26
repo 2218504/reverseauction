@@ -78,19 +78,19 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     const q = query(collection(db, "auctions"), orderBy("startTime", "desc"));
     
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const auctionsData = querySnapshot.docs.map(doc => {
-            const data = doc.data() as AuctionData;
+        const auctionsData = querySnapshot.docs.map(docSnapshot => {
+            const data = docSnapshot.data() as AuctionData;
             const startTime = data.startTime.toDate();
             const endTime = data.endTime.toDate();
             const status = getStatus(startTime, endTime);
             
             if (status !== data.status && data.status !== 'completed') {
-                const auctionRef = doc(db, 'auctions', doc.id);
+                const auctionRef = doc(db, 'auctions', docSnapshot.id);
                 updateDoc(auctionRef, { status });
             }
 
             return {
-                id: doc.id,
+                id: docSnapshot.id,
                 ...data,
                 startTime,
                 endTime,
@@ -197,10 +197,10 @@ export const AuctionProvider = ({ children }: { children: ReactNode }) => {
     const q = query(collection(db, "auctions", auctionId, "bids"), orderBy('amount', 'asc'));
     
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const bids = querySnapshot.docs.map(doc => {
-            const data = doc.data() as BidData;
+        const bids = querySnapshot.docs.map(docSnapshot => {
+            const data = docSnapshot.data() as BidData;
             return {
-                id: doc.id,
+                id: docSnapshot.id,
                 ...data,
                 time: data.time.toDate(),
             };
