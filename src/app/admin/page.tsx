@@ -258,36 +258,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Charts Section */}
-      {loading ? (
-        <div className="grid gap-8 md:grid-cols-2 animate-in slide-in-from-left duration-500 delay-200">
-          <Card className="shadow-xl border-0">
-            <CardHeader>
-              <Skeleton className="h-8 w-3/4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
-          <Card className="shadow-xl border-0">
-            <CardHeader>
-              <Skeleton className="h-8 w-3/4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <div className="grid gap-8 md:grid-cols-2 animate-in slide-in-from-left duration-500 delay-200">
-          <div className="transform hover:scale-105 transition-all duration-300">
-            <AuctionStatusChart auctions={auctions} />
-          </div>
-          <div className="transform hover:scale-105 transition-all duration-300">
-            <UserRegistrationChart users={allUsers} />
-          </div>
-        </div>
-      )}
+      
 
       {/* Main Management Section - Moved above Recent Activity */}
       <Card className="shadow-2xl border-0 bg-gradient-to-br from-white via-white to-gray-50/30 animate-in slide-in-from-bottom duration-500 delay-300">
