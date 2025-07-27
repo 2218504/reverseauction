@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -427,7 +428,7 @@ export default function AdminDashboard() {
                       </TableHeader>
                       <TableBody>
                         {filteredAuctions.map((auction, index) => {
-                          const openingBid = 1000000; // You should get this from your auction data
+                          const openingBid = auction.openingBid || 0;
                           const finalBid =
                             auction.currentLowestBid || openingBid;
                           const profit = calculateProfit(openingBid, finalBid);

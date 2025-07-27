@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -43,6 +44,7 @@ export interface Auction {
   id: string;
   title: string;
   description: string;
+  openingBid: number;
   currentLowestBid: number;
   startTime: Date;
   endTime: Date;
@@ -58,6 +60,7 @@ export interface Auction {
 export interface AuctionData {
   title: string;
   description: string;
+  openingBid: number;
   currentLowestBid: number;
   startTime: Timestamp;
   endTime: Timestamp;

@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -73,10 +74,12 @@ export default function CreateAuctionPage() {
     }
     setLoading(true);
     try {
+      const parsedStartPrice = parseFloat(startPrice);
       const newAuction = {
         title,
         description,
-        currentLowestBid: parseFloat(startPrice),
+        openingBid: parsedStartPrice,
+        currentLowestBid: parsedStartPrice,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         secretKey: secretKey || null,
