@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Header from "@/components/header";
 import { AuctionProvider } from "@/context/AuctionContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export default function RootLayout({
   children,
@@ -11,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link
           rel="icon"
@@ -29,17 +30,24 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          <AuctionProvider>
-            <div className="flex flex-col min-h-screen">
-              <Header />
-              <main className="flex-grow container mx-auto px-4 py-8">
-                {children}
-              </main>
-            </div>
-            <Toaster />
-          </AuctionProvider>
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <AuctionProvider>
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow container mx-auto px-4 py-8">
+                  {children}
+                </main>
+              </div>
+              <Toaster />
+            </AuctionProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
