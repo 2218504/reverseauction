@@ -3,17 +3,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read access to auctions
     match /auctions/{auctionId} {
       allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can create/update
+      allow write: if request.auth != null; 
     }
-
-    // Allow users to read their own user data
-    // and allow authenticated users to create their user doc
     match /users/{userId} {
       allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null;
     }
   }
 }
+
