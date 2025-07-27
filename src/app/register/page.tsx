@@ -326,31 +326,28 @@ export default function RegisterPage() {
           </form>
 
           <div className="text-center">
-            <Link
-              href="/login"
-              className="inline-flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 font-medium transition-all duration-200 hover:underline decoration-2 underline-offset-4 group"
-            >
-              <span>Sign in here</span>
-              <svg
-                className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <p className="text-sm text-gray-600">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="inline-flex items-center font-medium text-blue-600 hover:text-blue-800 transition-all duration-200 underline underline-offset-4 decoration-blue-500 hover:decoration-blue-700 group"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 8l4 4m0 0l-4 4m4-4H3"
-                />
-              </svg>
-            </Link>
-
-            <div className="mt-1 flex justify-center text-xs">
-              <span className="px-4 py-1 bg-blue-600 text-white transition-transform duration-300 hover:scale-110 rounded cursor-pointer">
-                Already have an account?
-              </span>
-            </div>
+                Click here to log in
+                <svg
+                  className="w-4 h-4 ml-1 transition-transform duration-200 transform group-hover:-translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 8l-4 4m0 0l4 4m-4-4h18"
+                  />
+                </svg>
+              </Link>
+            </p>
           </div>
         </CardContent>
       </Card>
