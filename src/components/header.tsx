@@ -306,7 +306,7 @@ export default function Header() {
                 <Button
                   asChild
                   variant="ghost"
-                  className="font-bold text-sm sm:text-base px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-700 hover:to-emerald-700 hover:scale-105 hover:shadow-lg transition-all duration-300 rounded-xl border-0"
+                  className="font-bold text-sm sm:text-base text-white px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-700 hover:to-emerald-700 hover:scale-105 hover:shadow-lg transition-all duration-300 rounded-xl border-0"
                 >
                   <Link href="/login">Login</Link>
                 </Button>
