@@ -118,32 +118,26 @@ export default function Header() {
             {/* Mobile Menu for authenticated users */}
             {user && (
               <div className="lg:hidden">
-                <Sheet
-                  open={isMobileMenuOpen}
-                  onOpenChange={setIsMobileMenuOpen}
-                >
-                  <SheetTrigger asChild>
-                    <Button
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                     <Button
                       variant="ghost"
                       size="sm"
                       className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200"
                     >
                       <Menu className="h-5 w-5" />
                     </Button>
-                  </SheetTrigger>
-                  <SheetContent
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
                     side="right"
                     className="w-72 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
                   >
-                    <SheetHeader>
-                      <div className="flex items-center justify-between">
-                        <SheetTitle className="text-left flex items-center gap-2">
+                    <DropdownMenuLabel className="text-left flex items-center gap-2">
                           <Gavel className="h-5 w-5 text-blue-600" />
                           Navigation
-                        </SheetTitle>
-                      </div>
-                    </SheetHeader>
-                    <div className="mt-8 space-y-3">
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
                       <Link
                         href="/auctions"
                         onClick={closeMobileMenu}
@@ -156,8 +150,10 @@ export default function Header() {
                         <Gavel className="h-5 w-5 mr-3" />
                         Auctions
                       </Link>
+                      </DropdownMenuItem>
 
                       {isAdminOrAuctioneer && (
+                        <DropdownMenuItem asChild>
                         <Link
                           href="/create-auction"
                           onClick={closeMobileMenu}
@@ -174,9 +170,11 @@ export default function Header() {
                           </div>
                           Create Auction
                         </Link>
+                        </DropdownMenuItem>
                       )}
 
                       {isAdmin && (
+                         <DropdownMenuItem asChild>
                         <Link
                           href="/admin"
                           onClick={closeMobileMenu}
@@ -191,11 +189,13 @@ export default function Header() {
                           </div>
                           Admin
                         </Link>
+                        </DropdownMenuItem>
                       )}
 
                       {/* User Info in Mobile Menu */}
-                      <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                       <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="font-normal p-4">
+                          <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             <AvatarImage
                               src={user.photoURL ?? ""}
@@ -217,24 +217,24 @@ export default function Header() {
                             </p>
                           </div>
                         </div>
-
+                        </DropdownMenuLabel>
+                         <DropdownMenuSeparator />
                         <div className="mt-4 space-y-2">
-                           <DropdownMenu>
-                              <DropdownMenuSub>
-                                <DropdownMenuSubTrigger className="flex items-center w-full p-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors duration-200 cursor-pointer">
-                                  <Sun className="h-4 w-4 mr-3 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                  <Moon className="absolute h-4 w-4 mr-3 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                                  <span>Theme</span>
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuPortal>
-                                    <DropdownMenuSubContent>
-                                        <DropdownMenuItem onClick={() => {setTheme("light"); closeMobileMenu()}}>Light</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => {setTheme("dark"); closeMobileMenu()}}>Dark</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => {setTheme("system"); closeMobileMenu()}}>System</DropdownMenuItem>
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuPortal>
-                              </DropdownMenuSub>
-                           </DropdownMenu>
+                           <DropdownMenuSub>
+                              <DropdownMenuSubTrigger className="flex items-center w-full p-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors duration-200 cursor-pointer">
+                                <Sun className="h-4 w-4 mr-3 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                                <Moon className="absolute h-4 w-4 mr-3 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                <span>Theme</span>
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                  <DropdownMenuSubContent>
+                                      <DropdownMenuItem onClick={() => {setTheme("light"); closeMobileMenu()}}>Light</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {setTheme("dark"); closeMobileMenu()}}>Dark</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {setTheme("system"); closeMobileMenu()}}>System</DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                          <DropdownMenuItem asChild>
                           <Link
                             href={`/profile/${user.uid}`}
                             onClick={closeMobileMenu}
@@ -243,6 +243,8 @@ export default function Header() {
                             <User className="h-4 w-4 mr-3" />
                             Profile
                           </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
                           <button
                             onClick={() => {
                               logout();
@@ -253,11 +255,10 @@ export default function Header() {
                             <LogOut className="h-4 w-4 mr-3" />
                             Sign Out
                           </button>
+                          </DropdownMenuItem>
                         </div>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             )}
 
