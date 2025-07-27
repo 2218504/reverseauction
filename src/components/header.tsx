@@ -219,6 +219,20 @@ export default function Header() {
                         </div>
 
                         <div className="mt-4 space-y-2">
+                           <DropdownMenuSub>
+                              <DropdownMenuSubTrigger className="flex items-center w-full p-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors duration-200 cursor-pointer">
+                                 <Sun className="h-4 w-4 mr-3 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                                 <Moon className="absolute h-4 w-4 mr-3 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                 <span>Theme</span>
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                  <DropdownMenuSubContent>
+                                      <DropdownMenuItem onClick={() => {setTheme("light"); closeMobileMenu()}}>Light</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {setTheme("dark"); closeMobileMenu()}}>Dark</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {setTheme("system"); closeMobileMenu()}}>System</DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
+                          </DropdownMenuSub>
                           <Link
                             href={`/profile/${user.uid}`}
                             onClick={closeMobileMenu}
