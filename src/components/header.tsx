@@ -115,6 +115,27 @@ export default function Header() {
 
           {/* User Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Mobile Menu for authenticated users */}
             {user && (
               <div className="lg:hidden">
@@ -220,20 +241,6 @@ export default function Header() {
                         </DropdownMenuLabel>
                          <DropdownMenuSeparator />
                         <div className="mt-4 space-y-2">
-                           <DropdownMenuSub>
-                              <DropdownMenuSubTrigger className="flex items-center w-full p-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors duration-200 cursor-pointer">
-                                <Sun className="h-4 w-4 mr-3 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                <Moon className="absolute h-4 w-4 mr-3 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                                <span>Theme</span>
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuPortal>
-                                  <DropdownMenuSubContent>
-                                      <DropdownMenuItem onClick={() => {setTheme("light"); closeMobileMenu()}}>Light</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => {setTheme("dark"); closeMobileMenu()}}>Dark</DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => {setTheme("system"); closeMobileMenu()}}>System</DropdownMenuItem>
-                                  </DropdownMenuSubContent>
-                              </DropdownMenuPortal>
-                            </DropdownMenuSub>
                           <DropdownMenuItem asChild>
                           <Link
                             href={`/profile/${user.uid}`}
@@ -304,20 +311,6 @@ export default function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                     <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="flex items-center p-3 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 cursor-pointer group">
-                           <Sun className="h-5 w-5 mr-3 group-hover:scale-110 transition-transform duration-200 rotate-0 scale-100 dark:-rotate-90 dark:scale-0" />
-                           <Moon className="absolute h-5 w-5 mr-3 group-hover:scale-110 transition-transform duration-200 rotate-90 scale-0 dark:rotate-0 dark:scale-100" />
-                           <span className="dark:text-white">Theme</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                    </DropdownMenuSub>
                     <DropdownMenuItem asChild>
                       <Link
                         href={`/profile/${user.uid}`}
@@ -395,20 +388,6 @@ export default function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="flex items-center p-3 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 cursor-pointer">
-                           <Sun className="h-4 w-4 mr-3 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                           <Moon className="absolute h-4 w-4 mr-3 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                           <span>Theme</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                    </DropdownMenuSub>
                     <DropdownMenuItem asChild>
                       <Link
                         href={`/profile/${user.uid}`}
