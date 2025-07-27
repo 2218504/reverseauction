@@ -22,6 +22,7 @@ import {
   TrendingDown,
   Clock,
   Eye,
+  IndianRupee,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -95,7 +96,7 @@ export default function HomePage() {
       description: "Connect with suppliers worldwide",
     },
     {
-      icon: DollarSign,
+      icon: IndianRupee,
       title: "Cost Savings",
       description: "Average 25% reduction in procurement costs",
     },
@@ -107,7 +108,7 @@ export default function HomePage() {
       role: "Procurement Director",
       company: "TechCorp",
       content:
-        "ReverseAuction transformed our procurement process. We've saved over $2M this year alone.",
+        "ReverseAuction transformed our procurement process. We've saved over ₹2M this year alone.",
       rating: 5,
     },
     {
@@ -203,7 +204,7 @@ export default function HomePage() {
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-black text-blue-600">$50M+</div>
+                  <div className="text-2xl font-black text-blue-600">₹50M+</div>
                   <div className="text-sm text-gray-600 font-semibold">
                     Client Savings
                   </div>
@@ -244,7 +245,7 @@ export default function HomePage() {
                       Office Supplies
                     </span>
                     <div className="text-right">
-                      <div className="font-bold text-green-600">$7,200</div>
+                      <div className="font-bold text-green-600">₹7,200</div>
                       <div className="text-xs text-gray-500">28% saved</div>
                     </div>
                   </div>
@@ -296,7 +297,7 @@ export default function HomePage() {
                   <div>
                     <div className="font-bold text-gray-900">TechCorp</div>
                     <div className="text-sm text-gray-600">
-                      Saved $2M this year
+                      Saved ₹2M this year
                     </div>
                   </div>
                 </div>
